@@ -20,6 +20,8 @@ import javafx.scene.chart.PieChart;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.AnchorPane;
+import javafx.scene.shape.Line;
 import org.kohsuke.github.*;
 
 /**
@@ -43,10 +45,9 @@ public class Controller implements Initializable {
     private Label infoContributors;
     @FXML
     private Label infoDescription;
-    
     @FXML
-    private BarChart barChart;
-    
+    private AnchorPane contentPane;
+        
     @FXML
     private void loadButtonAction(ActionEvent event) {
         GitHub github;
@@ -64,19 +65,15 @@ public class Controller implements Initializable {
             
             List<GHCommit> commits = repo.listCommits().asList();
             
-            System.out.println(commits.size());
-            commits.get(10).getLastStatus().getCreatedAt();
-            //System.out.println(commits.get(0).getLastStatus().);
-            //System.out.println(commits.get(50).getLastStatus().getCreatedAt());
+            int size = commits.size();            
+            System.out.println(commits.get(size - 1).getCommitShortInfo().getAuthor().getDate());
             
-            XYChart.Series series1 = new XYChart.Series();
-            series1.setName("2003");       
-            series1.getData().add(new XYChart.Data("1", 25601.34));
-            series1.getData().add(new XYChart.Data("2", 20148.82));
-            series1.getData().add(new XYChart.Data("3", 10000));
-            series1.getData().add(new XYChart.Data("4", 35407.15));
-            series1.getData().add(new XYChart.Data("5", 12000));    
-            barChart.getData().add(series1);
+            MasterCommits cv = new MasterCommits();
+            
+            contentPane.getChildren().addAll(cv.getLines());
+            
+            
+
             
         } catch (IOException ex) {
             Logger.getLogger(Controller.class.getName()).log(Level.WARNING, null, ex);
