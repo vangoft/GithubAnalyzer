@@ -6,9 +6,16 @@
 
 package github;
 
+import java.io.IOException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import javafx.scene.input.MouseEvent;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javafx.scene.control.Tooltip;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.image.ImageViewBuilder;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
@@ -22,8 +29,8 @@ public class CommitView {
     
     private List<GHCommit> commits = new ArrayList<>();
     
-    private List<Line> lines = new ArrayList<>();
-    private List<Circle> nodes = new ArrayList<>();
+    private final List<Line> lines = new ArrayList<>();
+    private final List<Circle> nodes = new ArrayList<>();
     
     public CommitView()
     {
@@ -49,16 +56,36 @@ public class CommitView {
     }
     
     private Circle createNode(int i, int xOffset, int yOffset, int stepSize){
+        
         Circle node = new Circle(i * stepSize + xOffset,
                     yOffset,
                     5,
                     Color.RED);
         
-        node.setOnMouseClicked((MouseEvent e) -> {
-            System.out.println("Author: " + commits.get(i).getCommitShortInfo().getAuthor().getName() + "\n"
-                + "Commit Date: " + commits.get(i).getCommitShortInfo().getAuthor().getDate());
-        });
-       
+        Tooltip tt = new Tooltip("Author: " + commits.get(i).getCommitShortInfo().getAuthor().getName() + "\n"
+                + "Commit Date: " + commits.get(i).getCommitShortInfo().getAuthor().getDate() + "\n"
+                + "Commit Info: " + commits.get(i).getCommitShortInfo().getMessage());  
+        
+        // Try getting the avatar
+        ImageView imgView = null;
+        try {
+            imgView = ImageViewBuilder.create()
+                    .image(new Image(commits.get(i).getAuthor().getAvatarUrl()))
+                    .build();
+        } catch (IOException ex) {
+            Logger.getLogger(CommitView.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        // if avatar not empty add to tooltip
+        if(imgView != null)
+        {
+            imgView.setFitHeight(50);
+            imgView.setFitWidth(50);
+            tt.setGraphic(imgView);
+        }
+        
+        Tooltip.install(node, tt);
+   
         return node;
     }
     

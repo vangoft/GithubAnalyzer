@@ -59,18 +59,17 @@ public class Controller implements Initializable {
             //infoForks.setText(String.valueOf(repo.listForks().asList().size()));
             //infoBranches.setText(String.valueOf(repo.getBranches().size()));
             //infoReleases.setText(String.valueOf(repo.listReleases().asList().size()));
-            //infoContributors.setText(String.valueOf(repo.listContributors().asList().size()));
-            
+            //infoContributors.setText(String.valueOf(repo.listContributors().asList().size()));            
             infoDescription.setText(repo.getDescription());
             
             List<GHCommit> commits = repo.listCommits().asList();
-            
-            //int size = commits.size();            
-            //System.out.println(commits.get(size - 1).getCommitShortInfo().getAuthor().getDate());
-            
+                        
             CommitView cv = new CommitView();
             cv.setCommits(commits);
             cv.buildGraph();
+            
+            if(contentPane.getChildren() != null)
+                contentPane.getChildren().removeAll(contentPane.getChildren());
             
             contentPane.getChildren().addAll(cv.getLines());
             contentPane.getChildren().addAll(cv.getNodes());
