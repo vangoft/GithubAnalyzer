@@ -56,21 +56,24 @@ public class Controller implements Initializable {
             GHRepository repo = github.getRepository(searchField.getText());
             
             infoName.setText(repo.getFullName());
-            infoForks.setText(String.valueOf(repo.listForks().asList().size()));
-            infoBranches.setText(String.valueOf(repo.getBranches().size()));
-            infoReleases.setText(String.valueOf(repo.listReleases().asList().size()));
-            infoContributors.setText(String.valueOf(repo.listContributors().asList().size()));
+            //infoForks.setText(String.valueOf(repo.listForks().asList().size()));
+            //infoBranches.setText(String.valueOf(repo.getBranches().size()));
+            //infoReleases.setText(String.valueOf(repo.listReleases().asList().size()));
+            //infoContributors.setText(String.valueOf(repo.listContributors().asList().size()));
             
             infoDescription.setText(repo.getDescription());
             
             List<GHCommit> commits = repo.listCommits().asList();
             
-            int size = commits.size();            
-            System.out.println(commits.get(size - 1).getCommitShortInfo().getAuthor().getDate());
+            //int size = commits.size();            
+            //System.out.println(commits.get(size - 1).getCommitShortInfo().getAuthor().getDate());
             
-            MasterCommits cv = new MasterCommits();
+            CommitView cv = new CommitView();
+            cv.setCommits(commits);
+            cv.buildGraph();
             
             contentPane.getChildren().addAll(cv.getLines());
+            contentPane.getChildren().addAll(cv.getNodes());
             
             
 
