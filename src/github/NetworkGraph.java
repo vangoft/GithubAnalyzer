@@ -9,7 +9,9 @@ package github;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.scene.control.Tooltip;
@@ -32,6 +34,7 @@ public class NetworkGraph {
     
     private final List<Line> lines = new ArrayList<>();
     private final List<Circle> nodes = new ArrayList<>();
+    private final HashMap<String, Color> colors = new HashMap<>();
     
     public NetworkGraph()
     {
@@ -50,12 +53,12 @@ public class NetworkGraph {
         {
             multiCnt = checkMultiNode(i);
             if(multiCnt == i)
-            {
+            { 
                 nodes.add(createSingleNode(nodes.size(), xOffset, yOffset, stepSize));  
             }
             else
             {
-                nodes.add(createMultiNode(nodes.size(), multiCnt, xOffset, yOffset, stepSize));
+                nodes.add(createMultiNode(nodes.size(), i, multiCnt, xOffset, yOffset, stepSize));
                 i = multiCnt;
             }    
         }
@@ -80,9 +83,7 @@ public class NetworkGraph {
         boolean par2 = commits.get(start + 1).getParentSHA1s().size() <= 1;  
         boolean auth = commits.get(start).getCommitShortInfo().getAuthor().getName()
                     .equals(commits.get(start + 1).getCommitShortInfo().getAuthor().getName());       
-        if(start == 15)
-            System.out.println(commits.get(start).getCommitShortInfo().getAuthor().getName()
-                     + " " + commits.get(start + 1).getCommitShortInfo().getAuthor().getName());
+
         while((par1)
                 && (par2)
                 && (auth))
@@ -91,8 +92,7 @@ public class NetworkGraph {
             
             if(commits.get(start).getParentSHA1s().size() < 1)
                 break;
-            else {
-                            
+            else {                            
             par1 = commits.get(start).getParentSHA1s().size() <= 1;
             par2 = commits.get(start + 1).getParentSHA1s().size() <= 1;  
             auth = commits.get(start).getCommitShortInfo().getAuthor().getName()
@@ -103,11 +103,11 @@ public class NetworkGraph {
     }   
     
     private Circle createSingleNode(int i, int xOffset, int yOffset, int stepSize){
-        
+             
         Circle node = new Circle(i * stepSize + xOffset,
                     yOffset,
                     5,
-                    Color.RED);
+                    colors.get(commits.get(i).getCommitShortInfo().getAuthor().getName()));
         
         Tooltip tt = new Tooltip("Author: " + commits.get(i).getCommitShortInfo().getAuthor().getName() + "\n\n"
                 + "Commit Date: " + commits.get(i).getCommitShortInfo().getAuthor().getDate() + "\n"
@@ -121,12 +121,12 @@ public class NetworkGraph {
         return node;
     }
     
-    private Circle createMultiNode(int start, int end, int xOffset, int yOffset, int stepSize){
+    private Circle createMultiNode(int x, int start, int end, int xOffset, int yOffset, int stepSize){
         
-        Circle node = new Circle(start * stepSize + xOffset,
+        Circle node = new Circle(x * stepSize + xOffset,
                     yOffset,
                     5,
-                    Color.RED);
+                    colors.get(commits.get(start).getCommitShortInfo().getAuthor().getName()));
         
         String toolTip = "Author: " + commits.get(start).getCommitShortInfo().getAuthor().getName() + "\n\n";
         for(int i = start; i <= end; i++)
@@ -179,24 +179,19 @@ public class NetworkGraph {
     public void setCommits(List<GHCommit> commits)
     {
         this.commits = commits;
+        setColors();
     }
     
-//    public void buildGraph()
-//    {
-//        int commitSize = commits.size();
-//        int stepSize = 30;
-//        int yOffset = 50;
-//        int xOffset = 50;
-//        
-//        for(int i = 0; i < commitSize; i++)
-//        {                   
-//            nodes.add(createSingleNode(i, xOffset, yOffset, stepSize));
-//            
-//            if(i + 1 < commitSize)
-//                lines.add(new Line(i * stepSize + xOffset,
-//                        yOffset, i * stepSize + stepSize + xOffset,
-//                        yOffset));
-//        }
-//    }
-    
+    private void setColors(){
+        Random rand = new Random();
+        Color clr;
+        for (GHCommit commit : commits) {
+            if (colors.get(commit.getCommitShortInfo().getAuthor().getName()) == null) 
+            {
+                clr = Color.rgb(rand.nextInt((255 - 1) + 1) + 1, rand.nextInt((255 - 1) + 1) + 1, rand.nextInt((255 - 1) + 1) + 1);
+                colors.put(commit.getCommitShortInfo().getAuthor().getName(), clr);
+            }
+        }
+    }
+        
 }
