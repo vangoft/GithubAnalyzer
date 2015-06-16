@@ -8,6 +8,7 @@ package github;
 import java.io.IOException;
 import java.net.URL;
 import java.sql.Time;
+import java.time.Instant;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -61,20 +62,19 @@ public class Controller implements Initializable {
             //infoReleases.setText(String.valueOf(repo.listReleases().asList().size()));
             //infoContributors.setText(String.valueOf(repo.listContributors().asList().size()));            
             infoDescription.setText(repo.getDescription());
-            
+
             List<GHCommit> commits = repo.listCommits().asList();
-                        
-            CommitView cv = new CommitView();
-            cv.setCommits(commits);
-            cv.buildGraph();
-            
+
             if(contentPane.getChildren() != null)
                 contentPane.getChildren().removeAll(contentPane.getChildren());
-            
+
+            NetworkGraph cv = new NetworkGraph();
+            cv.setCommits(commits);
+            cv.createGraph();
+
             contentPane.getChildren().addAll(cv.getLines());
             contentPane.getChildren().addAll(cv.getNodes());
-            
-            
+      
 
             
         } catch (IOException ex) {
