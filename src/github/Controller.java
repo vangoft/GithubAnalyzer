@@ -7,8 +7,6 @@ package github;
 
 import java.io.IOException;
 import java.net.URL;
-import java.sql.Time;
-import java.time.Instant;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -16,18 +14,14 @@ import java.util.logging.Logger;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.chart.BarChart;
-import javafx.scene.chart.PieChart;
-import javafx.scene.chart.XYChart;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.AnchorPane;
-import javafx.scene.shape.Line;
 import org.kohsuke.github.*;
 
 /**
  *
- * @author axes90
+ * @author Alexander Distergoft
  */
 public class Controller implements Initializable {
         
@@ -67,13 +61,13 @@ public class Controller implements Initializable {
 
             if(contentPane.getChildren() != null)
                 contentPane.getChildren().removeAll(contentPane.getChildren());
-
-            NetworkGraph cv = new NetworkGraph();
-            cv.setCommits(commits);
-            cv.createGraph();
-
-            contentPane.getChildren().addAll(cv.getLines());
-            contentPane.getChildren().addAll(cv.getNodes());
+            System.out.println("davor");
+            NetworkGraph ng = new NetworkGraph(commits);
+            System.out.println("vor create");
+            ng.createGraph();
+            System.out.println("nach create");
+            contentPane.getChildren().addAll(ng.getLines());
+            contentPane.getChildren().addAll(ng.getNodes());
       
 
             
