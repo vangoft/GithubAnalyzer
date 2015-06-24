@@ -8,6 +8,7 @@ package github;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
@@ -19,6 +20,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
 import org.kohsuke.github.GHCommit;
+import org.kohsuke.github.GHRepository;
 
 /**
  *
@@ -27,14 +29,19 @@ import org.kohsuke.github.GHCommit;
 public class NetworkGraph {
     
     //private List<GHCommit> commits = new ArrayList<>();
+    private GHRepository repo;
     private final List<NGCommit> ngcommits = new ArrayList<>();
     
     private final List<Line> lines = new ArrayList<>();
     private final List<Circle> nodes = new ArrayList<>();
+    private final HashMap<String, Double> posX = new HashMap<>();
+    private final HashMap<String, Double> posY = new HashMap<>(); 
     private final HashMap<String, Color> colors = new HashMap<>();
     
-    public NetworkGraph(List<GHCommit> commits)
+    
+    public NetworkGraph(List<GHCommit> commits, GHRepository repo)
     {
+        this.repo = repo;
         processCommits(commits);
         setColors();
     }
@@ -42,51 +49,93 @@ public class NetworkGraph {
     private void processCommits(List<GHCommit> commits){
         HashMap<String, NGCommit> hs = new HashMap();
         
-        //add all commits in new format
+        //put all commits with new format in hashmap
         for(GHCommit com : commits)
             hs.put(com.getSHA1(), new NGCommit(com));
         
         //add missing parent/child information
+        //reverse list so that earlier date children come first
+        Collections.reverse(commits);
         for(GHCommit com : commits)
             if(com.getParentSHA1s().size() > 0)
                 for(String sha1 : com.getParentSHA1s())
-                    hs.get(sha1).addChild(com.getSHA1());
+                    hs.get(sha1).addChild(com.getSHA1());        
         
+        //undo reverse and add all new commits into list
+        Collections.reverse(commits);
         for(GHCommit com: commits)
             ngcommits.add(hs.get(com.getSHA1()));                
     }
     
-    public void createGraph()
+    
+    public void createGraph() throws IOException
     {
-        int stepSize = 30;
-        int yOffset = 50;
-        int xOffset = 50;
+        Collections.reverse(ngcommits);
+        
+        double stepSize = 30;
+        double yOffset = 50;
+        double xOffset = 50;   
+                
+        HashMap<String, Integer> levels = new HashMap<>();
+        int maxLev = 1;  
+        levels.put(ngcommits.get(0).getSHA1(), maxLev);
         
         int multiCnt = 0;
-         
+        
         for(int i = 0; i < ngcommits.size(); i++)
         {
+            if(i > 0)
+            {
+                if(ngcommits.get(i).getAuthor().equals(repo.getCommit(ngcommits.get(i).getParentSHA1s().get(0)).getCommitShortInfo().getAuthor().getName()))
+                    levels.put(ngcommits.get(i).getSHA1(), levels.get(ngcommits.get(i).getParentSHA1s().get(0)));
+                else{
+                    levels.put(ngcommits.get(i).getSHA1(), maxLev + 1);
+                    maxLev = levels.get(ngcommits.get(i).getSHA1());
+                }
+            }
+            
             multiCnt = checkMultiNode(i);
             if(multiCnt == i)
             { 
-                nodes.add(createSingleNode(i, nodes.size(), xOffset, yOffset, stepSize));  
+                nodes.add(createSingleNode(i, nodes.size(), xOffset, yOffset * levels.get(ngcommits.get(i).getSHA1()) * 0.75, stepSize)); 
+                               
+                for(String sha : ngcommits.get(i).getParentSHA1s())
+                {
+                    Line line = new Line(posX.get(sha),
+                        posY.get(sha),
+                        posX.get(ngcommits.get(i).getSHA1()),
+                        posY.get(ngcommits.get(i).getSHA1()));
+                    lines.add(line);
+                }             
             }
             else
             {
-                nodes.add(createMultiNode(nodes.size(), i, multiCnt, xOffset, yOffset, stepSize));
+                nodes.add(createMultiNode(nodes.size(), i, multiCnt, xOffset, yOffset * levels.get(ngcommits.get(i).getSHA1()) * 0.75, stepSize));
+                
+                for(int j = i; j <= multiCnt; j++)
+                {
+                    levels.put(ngcommits.get(j).getSHA1(), levels.get(ngcommits.get(i).getSHA1()));
+                }
+                
+                for(String sha : ngcommits.get(i).getParentSHA1s())
+                {
+                    Line line = new Line(posX.get(sha),
+                        posY.get(sha),
+                        posX.get(ngcommits.get(i).getSHA1()),
+                        posY.get(ngcommits.get(i).getSHA1()));
+                lines.add(line);
+                }                    
+
                 i = multiCnt;
             }    
+            
+            if(ngcommits.get(i).getParentSHA1s().size() > 1)
+                maxLev = ngcommits.get(i).getParentSHA1s().size() - 1;
+       
         }
-        
-        for(int i = 0; i < nodes.size() - 1; i++)
-        {
-                lines.add(new Line(i * stepSize + xOffset,
-                    yOffset, i * stepSize + stepSize + xOffset,
-                    yOffset));
-        }
-        
     }
     
+        
     private int checkMultiNode(int i)
     {
         int start = i;
@@ -116,7 +165,7 @@ public class NetworkGraph {
         {
             start++;
             
-            if(ngcommits.get(start).getParentSHA1s().size() < 1)
+            if(ngcommits.get(start).getParentSHA1s().size() < 1 || (start >= ngcommits.size() - 1))
                 break;
             else {                            
                 par1 = ngcommits.get(start).getParentSHA1s().size() > 1;
@@ -132,7 +181,7 @@ public class NetworkGraph {
         return start;
     }   
     
-    private Circle createSingleNode(int i, int pos, int xOffset, int yOffset, int stepSize){
+    private Circle createSingleNode(int i, double pos, double xOffset, double yOffset, double stepSize){
              
         Circle node = new Circle(pos * stepSize + xOffset,
                     yOffset,
@@ -147,13 +196,16 @@ public class NetworkGraph {
         //getAvatar(tt, ngcommits.get(i));
         
         Tooltip.install(node, tt);
+        
+        posX.put(ngcommits.get(i).getSHA1(), node.getCenterX());
+        posY.put(ngcommits.get(i).getSHA1(), node.getCenterY());
    
         return node;
     }
     
-    private Circle createMultiNode(int x, int start, int end, int xOffset, int yOffset, int stepSize)
+    private Circle createMultiNode(double pos, int start, int end, double xOffset, double yOffset, double stepSize)
     {        
-        Circle node = new Circle(x * stepSize + xOffset,
+        Circle node = new Circle(pos * stepSize + xOffset,
                     yOffset,
                     5,
                     colors.get(ngcommits.get(start).getAuthor()));
@@ -164,13 +216,16 @@ public class NetworkGraph {
             toolTip += "Commit Date: " + ngcommits.get(i).getDate() + "\n"
                 + "SHA: " + ngcommits.get(i).getSHA1() + "\n"
                 + "Commit Info: " + ngcommits.get(i).getMessage() + "\n\n";
+            
+            posX.put(ngcommits.get(i).getSHA1(), node.getCenterX());
+            posY.put(ngcommits.get(i).getSHA1(), node.getCenterY());
         }
         Tooltip tt = new Tooltip(toolTip);   
         
         //getAvatar(tt, ngcommits.get(start));
         
         Tooltip.install(node, tt);
-   
+        
         return node;
     }
     

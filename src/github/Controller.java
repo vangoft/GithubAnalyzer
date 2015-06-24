@@ -61,15 +61,11 @@ public class Controller implements Initializable {
 
             if(contentPane.getChildren() != null)
                 contentPane.getChildren().removeAll(contentPane.getChildren());
-            System.out.println("davor");
-            NetworkGraph ng = new NetworkGraph(commits);
-            System.out.println("vor create");
+            
+            NetworkGraph ng = new NetworkGraph(commits, repo);
             ng.createGraph();
-            System.out.println("nach create");
             contentPane.getChildren().addAll(ng.getLines());
-            contentPane.getChildren().addAll(ng.getNodes());
-      
-
+            contentPane.getChildren().addAll(ng.getNodes());    
             
         } catch (IOException ex) {
             Logger.getLogger(Controller.class.getName()).log(Level.WARNING, null, ex);

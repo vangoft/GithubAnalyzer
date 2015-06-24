@@ -19,12 +19,12 @@ import org.kohsuke.github.GHCommit;
 public class NGCommit {
     private final GHCommit commit;
     private final List<String> parents;
-    private List<String> children;
+    private final List<String> children;
     
     public NGCommit(GHCommit commit){
         this.commit = commit;
         parents = commit.getParentSHA1s();
-        children = new ArrayList<String>();
+        children = new ArrayList<>();        
     }
     
     public String getAuthor(){
