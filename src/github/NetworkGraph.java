@@ -98,15 +98,26 @@ public class NetworkGraph {
             if(multiCnt == i)
             { 
                 nodes.add(createSingleNode(i, nodes.size(), xOffset, yOffset * levels.get(ngcommits.get(i).getSHA1()) * 0.75, stepSize)); 
-                               
-                for(String sha : ngcommits.get(i).getParentSHA1s())
+                
+                for(int j = 0; j < ngcommits.get(i).getParentSHA1s().size(); j++)
                 {
-                    Line line = new Line(posX.get(sha),
-                        posY.get(sha),
+                    Line line = new Line(posX.get(ngcommits.get(i).getParentSHA1s().get(j)),
+                        posY.get(ngcommits.get(i).getParentSHA1s().get(j)),
                         posX.get(ngcommits.get(i).getSHA1()),
                         posY.get(ngcommits.get(i).getSHA1()));
+                    
+                    String name = repo.getCommit(ngcommits.get(i)
+                            .getParentSHA1s().get(j)).getCommitShortInfo().getAuthor().getName();
+                    
+                    if(j == 0 && name.equals(ngcommits.get(i).getAuthor()))
+                        line.setStroke(colors.get(name));
+                    else if(j == 1 && !name.equals(ngcommits.get(i).getAuthor()))
+                        line.setStroke(colors.get(name));
+                    else
+                        line.setStroke(colors.get(ngcommits.get(i).getAuthor()));
                     lines.add(line);
-                }             
+                }
+        
             }
             else
             {
@@ -117,14 +128,24 @@ public class NetworkGraph {
                     levels.put(ngcommits.get(j).getSHA1(), levels.get(ngcommits.get(i).getSHA1()));
                 }
                 
-                for(String sha : ngcommits.get(i).getParentSHA1s())
+                for(int j = 0; j < ngcommits.get(i).getParentSHA1s().size(); j++)
                 {
-                    Line line = new Line(posX.get(sha),
-                        posY.get(sha),
+                    Line line = new Line(posX.get(ngcommits.get(i).getParentSHA1s().get(j)),
+                        posY.get(ngcommits.get(i).getParentSHA1s().get(j)),
                         posX.get(ngcommits.get(i).getSHA1()),
                         posY.get(ngcommits.get(i).getSHA1()));
-                lines.add(line);
-                }                    
+                    
+                    String name = repo.getCommit(ngcommits.get(i)
+                            .getParentSHA1s().get(j)).getCommitShortInfo().getAuthor().getName();
+                    
+                    if(j == 0 && name.equals(ngcommits.get(i).getAuthor()))
+                        line.setStroke(colors.get(name));
+                    else if(j == 1 && !name.equals(ngcommits.get(i).getAuthor()))
+                        line.setStroke(colors.get(name));
+                    else
+                        line.setStroke(colors.get(ngcommits.get(i).getAuthor()));
+                    lines.add(line);
+                }
 
                 i = multiCnt;
             }    
