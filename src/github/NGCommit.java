@@ -18,13 +18,17 @@ import org.kohsuke.github.GHCommit;
  */
 public class NGCommit {
     private final GHCommit commit;
-    private final List<String> parents;
-    private final List<String> children;
+    private final List<String> parentsSha1;
+    private final List<String> childrenSha1;
+    private final List<GHCommit> parents;
+    private final List<GHCommit> children;
     
     public NGCommit(GHCommit commit){
         this.commit = commit;
-        parents = commit.getParentSHA1s();
-        children = new ArrayList<>();        
+        parentsSha1 = commit.getParentSHA1s();
+        childrenSha1 = new ArrayList<>();
+        parents = new ArrayList<>();
+        children = new ArrayList<>();
     }
     
     public String getAuthor(){
@@ -40,7 +44,7 @@ public class NGCommit {
     }
     
     public List<String> getParentSHA1s(){
-        return parents;
+        return parentsSha1;
     }
     
     public String getSHA1(){
@@ -48,16 +52,16 @@ public class NGCommit {
     }
     
     public boolean hasChild(){
-        return (children.size() > 0);
+        return (childrenSha1.size() > 0);
     }      
 
     public List<String> getChildren()
     {
-        return children;
+        return childrenSha1;
     }
     
-    public void addChild(String sha1){
-        children.add(sha1);
+    public void addChildSHA1(String sha1){
+        childrenSha1.add(sha1);
     }
     
     public String getAvatarUrl() throws IOException{

@@ -58,7 +58,6 @@ public class Controller implements Initializable {
             infoDescription.setText(repo.getDescription());
 
             List<GHCommit> commits = repo.listCommits().asList();
-
             if(contentPane.getChildren() != null)
                 contentPane.getChildren().removeAll(contentPane.getChildren());
             
