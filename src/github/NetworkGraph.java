@@ -107,9 +107,7 @@ public class NetworkGraph {
                 nodes.add(createMultiNode(nodes.size(), i, multiCnt, xOffset, yOffset * levels.get(ngcommits.get(i).getSHA1()) * 0.75, stepSize));
                 
                 for(int j = i; j <= multiCnt; j++)
-                {
                     levels.put(ngcommits.get(j).getSHA1(), levels.get(ngcommits.get(i).getSHA1()));
-                }
 
                 drawLine(ngcommits.get(i));
                 
@@ -273,10 +271,10 @@ public class NetworkGraph {
                 {
                     line1 = new Line(posX.get(commit.getParentSHA1s().get(j)),
                         posY.get(commit.getParentSHA1s().get(j)),
-                        posX.get(commit.getParentSHA1s().get(j)),
+                        posX.get(commit.getParentSHA1s().get(j)) + 4,
                         posY.get(commit.getSHA1()));
 
-                    line2 = new Line(posX.get(commit.getParentSHA1s().get(j)),
+                    line2 = new Line(posX.get(commit.getParentSHA1s().get(j)) + 4,
                         posY.get(commit.getSHA1()),
                         posX.get(commit.getSHA1()),
                         posY.get(commit.getSHA1()));
@@ -285,10 +283,10 @@ public class NetworkGraph {
                 {
                     line1 = new Line(posX.get(commit.getParentSHA1s().get(j)),
                         posY.get(commit.getParentSHA1s().get(j)),
-                        posX.get(commit.getSHA1()),
+                        posX.get(commit.getSHA1()) - 4,
                         posY.get(commit.getParentSHA1s().get(j)));
 
-                    line2 = new Line(posX.get(commit.getSHA1()),
+                    line2 = new Line(posX.get(commit.getSHA1()) - 4,
                         posY.get(commit.getParentSHA1s().get(j)),
                         posX.get(commit.getSHA1()),
                         posY.get(commit.getSHA1()));
