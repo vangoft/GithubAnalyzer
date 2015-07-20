@@ -22,6 +22,7 @@ public class NGCommit {
     private final List<String> childrenSha1;
     private final List<GHCommit> parents;
     private final List<GHCommit> children;
+    private int space = -1;
     
     public NGCommit(GHCommit commit){
         this.commit = commit;
@@ -30,7 +31,7 @@ public class NGCommit {
         parents = new ArrayList<>();
         children = new ArrayList<>();
     }
-    
+        
     public String getAuthor(){
         return commit.getCommitShortInfo().getAuthor().getName();
     }
@@ -55,7 +56,7 @@ public class NGCommit {
         return (childrenSha1.size() > 0);
     }      
 
-    public List<String> getChildren()
+    public List<String> getChildrenSHA1s()
     {
         return childrenSha1;
     }
@@ -66,6 +67,16 @@ public class NGCommit {
     
     public String getAvatarUrl() throws IOException{
         return commit.getAuthor().getAvatarUrl();
+    }
+    
+    public void setSpace(int space)
+    {
+        this.space = space;
+    }
+    
+    public int getSpace()
+    {
+        return space;
     }
 
 }
