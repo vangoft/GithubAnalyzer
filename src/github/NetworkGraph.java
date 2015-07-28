@@ -38,7 +38,7 @@ public class NetworkGraph {
     private final HashMap<String, Double> posY = new HashMap<>(); 
     private final HashMap<Integer, Color> colors = new HashMap<>();
     private final HashMap<Integer, Boolean> spaces = new HashMap<>();
-    private static final int maxSpaces = 100;
+    private static final int numSpaces = 100;
     
     
     public NetworkGraph(List<GHCommit> commits, List<GHRepository> forks)
@@ -50,9 +50,15 @@ public class NetworkGraph {
     private void processCommits(List<GHCommit> commits, List<GHRepository> forks){
         HashMap<String, NGCommit> hm = new HashMap();
         
+        //processing order for space processing
+        //set first commit of master as the first to be processed
+        List<String> procOrder = new ArrayList();
+        procOrder.add(commits.get(0).getOwner().getFullName());
+        
         //put all commits with new format in hashmap
         for(GHCommit com : commits)
             hm.put(com.getSHA1(), new NGCommit(com));
+        
         
         //put fork data in hashmap
         for(GHRepository fork: forks)
@@ -82,104 +88,145 @@ public class NetworkGraph {
                 return o2.getDate().compareTo(o1.getDate());
             }
         });
-
-        processSpaces(ngcommits);
+        
+//        for(NGCommit com: ngcommits)
+//            System.out.println(com.getDate() + " " + com.getOwner() + " " + com.getSHA1());
+//        
+        //prepare procesSpaces-order (first master then forks)
+        for(NGCommit com : ngcommits)
+            if(!procOrder.contains(com.getOwner()))
+                procOrder.add(com.getOwner());
+        
+        
+        processSpaces(ngcommits, procOrder);
     }
     
-    public void processSpaces(List<NGCommit> commits)
+    public void processSpaces(List<NGCommit> commits, List<String> order)
     {
         //put all commits with new format in hashmap
         for(NGCommit com : commits)
             hs.put(com.getSHA1(), com);
         
-        spaces.put(0,true);
-        for(int i = 1; i < maxSpaces; i++)
-            spaces.put(i,false);
- 
-        ngcommits.get(0).setSpace(0);
+        //current max space
+        int maxSpace = 0;
+        int tempMaxSpace = 0;
+        int cnt = 0;
         
-        for(int i = 0; i < ngcommits.size(); i++)
-        {
-            //remove empty vertical space
-            if(ngcommits.get(i).getChildrenSHA1s().size() > 1)
-            {
-                for(int j = 0; j < ngcommits.get(i).getChildrenSHA1s().size(); j++)
-                {
-                    if(hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getParentSHA1s().size() < 2)
-                    {
-                        if(hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getSpace() != ngcommits.get(i).getSpace())
-                            spaces.put(hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getSpace(), false);
-                    }
-                    else
-                    {
-                        if(hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getSpace() != ngcommits.get(i).getSpace())
-                            spaces.put(hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getSpace(), false);
-                        
-                        for(int k = 0; k < hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getParentSHA1s().size(); k++)
-                        {
-                            String parent = hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getParentSHA1s().get(k);
-                            
-                            if(!parent.equals(ngcommits.get(i).getSHA1()) 
-                                    && hs.get(parent).getSpace() == hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getSpace())
-                                spaces.put(hs.get(hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getParentSHA1s().get(k)).getSpace(), true);
-                        }
-                    }
-                }
+        //init maxSpacing, all false besides 1st
+        for(int i = 0; i < numSpaces; i++)
+            spaces.put(i,false); 
                 
+        for(String owner : order)
+        {            
+            //init spacing, first commit in current branch set to "0"
+            for(int i = 0; i < ngcommits.size(); i++)
+            {
+                if(ngcommits.get(i).getOwner().equals(owner))
+                {
+                    ngcommits.get(i).setSpace(maxSpace);
+                    tempMaxSpace = maxSpace;
+                    
+                    for(int j = 0; j <= ngcommits.get(i).getSpace(); j++)
+                    {
+                        spaces.put(j,true);
+                    }                    
+                    cnt = i;
+                    break;
+                }
             }
 
-            //if no parent, end of commits
-            if(ngcommits.get(i).getParentSHA1s().isEmpty())
+            for(int i = cnt; i < ngcommits.size(); i++)
             {
-                break;
+                if(ngcommits.get(i).getOwner().equals(owner))
+                {
+                    //remove empty vertical space
+                    if(ngcommits.get(i).getChildrenSHA1s().size() > 1)
+                    {
+                        for(int j = 0; j < ngcommits.get(i).getChildrenSHA1s().size(); j++)
+                        {
+                            if(hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getParentSHA1s().size() < 2)
+                            {
+                                if(hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getSpace() != ngcommits.get(i).getSpace())
+                                    spaces.put(hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getSpace(), false);
+                            }
+                            else
+                            {
+                                if(hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getSpace() != ngcommits.get(i).getSpace())
+                                    spaces.put(hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getSpace(), false);
+
+                                for(int k = 0; k < hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getParentSHA1s().size(); k++)
+                                {
+                                    String parent = hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getParentSHA1s().get(k);
+
+                                    if(!parent.equals(ngcommits.get(i).getSHA1()) 
+                                            && hs.get(parent).getSpace() == hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getSpace())
+                                        spaces.put(hs.get(hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getParentSHA1s().get(k)).getSpace(), true);
+                                }
+                            }
+                        }
+
+                    }
+
+                    //if no parent, end of commits
+                    if(ngcommits.get(i).getParentSHA1s().isEmpty())
+                    {
+                        maxSpace = tempMaxSpace + 1;
+                        break;
+                    }
+
+                    //if more than 1 parent
+                    else if(ngcommits.get(i).getParentSHA1s().size() > 1)
+                    {
+                        //set first parent space
+                        if(hs.get(ngcommits.get(i).getParentSHA1s().get(0)).getSpace() < 0)
+                        {
+                            hs.get(ngcommits.get(i).getParentSHA1s().get(0)).setSpace(ngcommits.get(i).getSpace());
+                        }
+                        else if(hs.get(ngcommits.get(i).getParentSHA1s().get(0)).getSpace() >= 0)
+                        {
+                            if(hs.get(ngcommits.get(i).getParentSHA1s().get(0)).getSpace() > ngcommits.get(i).getSpace())
+                                hs.get(ngcommits.get(i).getParentSHA1s().get(0)).setSpace(ngcommits.get(i).getSpace());
+                        }
+
+                        //set second parent space
+                        //downfork
+                        if((hs.get(ngcommits.get(i).getParentSHA1s().get(1)).getSpace() > -1)
+                                && (hs.get(ngcommits.get(i).getParentSHA1s().get(1)).getSpace() < ngcommits.get(i).getSpace()))
+                            continue;
+
+                        //second parent has same parent
+                        String par1 = ngcommits.get(i).getParentSHA1s().get(0);
+                        String par2 = hs.get(ngcommits.get(i).getParentSHA1s().get(1)).getParentSHA1s().get(0);
+
+                        if(par1.equals(par2) && hs.get(ngcommits.get(i).getParentSHA1s().get(0)).getSpace() < 0)
+                            hs.get(ngcommits.get(i).getParentSHA1s().get(1)).setSpace(ngcommits.get(i).getSpace());                   
+                        //normal 
+                        else
+                        {
+                            int s = getFreeSpace();
+                            if(s > tempMaxSpace)
+                                tempMaxSpace = s;
+                            hs.get(ngcommits.get(i).getParentSHA1s().get(1)).setSpace(s); 
+                        }               
+                    }
+                    //if only 1 parent
+                    else
+                    {
+                        if(hs.get(ngcommits.get(i).getParentSHA1s().get(0)).getSpace() < 0)
+                        {
+                            hs.get(ngcommits.get(i).getParentSHA1s().get(0)).setSpace(ngcommits.get(i).getSpace());
+                        }
+                        else if(hs.get(ngcommits.get(i).getParentSHA1s().get(0)).getSpace() >= 0)
+                        {
+                            if(hs.get(ngcommits.get(i).getParentSHA1s().get(0)).getSpace() > ngcommits.get(i).getSpace())
+                                hs.get(ngcommits.get(i).getParentSHA1s().get(0)).setSpace(ngcommits.get(i).getSpace());
+                        }
+                    }                     
+                }
+                //update maxSpace for forks
+                if(i == ngcommits.size() - 1)
+                    maxSpace = tempMaxSpace + 1;
             }
-            
-            //if more than 1 parent
-            else if(ngcommits.get(i).getParentSHA1s().size() > 1)
-            {
-                //set first parent space
-                if(hs.get(ngcommits.get(i).getParentSHA1s().get(0)).getSpace() < 0)
-                {
-                    hs.get(ngcommits.get(i).getParentSHA1s().get(0)).setSpace(ngcommits.get(i).getSpace());
-                }
-                else if(hs.get(ngcommits.get(i).getParentSHA1s().get(0)).getSpace() >= 0)
-                {
-                    if(hs.get(ngcommits.get(i).getParentSHA1s().get(0)).getSpace() > ngcommits.get(i).getSpace())
-                        hs.get(ngcommits.get(i).getParentSHA1s().get(0)).setSpace(ngcommits.get(i).getSpace());
-                }
-                
-                //set second parent space
-                //downfork
-                if((hs.get(ngcommits.get(i).getParentSHA1s().get(1)).getSpace() > -1)
-                        && (hs.get(ngcommits.get(i).getParentSHA1s().get(1)).getSpace() < ngcommits.get(i).getSpace()))
-                    continue;
-                
-                //second parent has same parent
-                String par1 = ngcommits.get(i).getParentSHA1s().get(0);
-                String par2 = hs.get(ngcommits.get(i).getParentSHA1s().get(1)).getParentSHA1s().get(0);
-                
-                if(par1.equals(par2) && hs.get(ngcommits.get(i).getParentSHA1s().get(0)).getSpace() < 0)
-                    hs.get(ngcommits.get(i).getParentSHA1s().get(1)).setSpace(ngcommits.get(i).getSpace());                   
-                //normal 
-                else
-                {
-                    int s = getFreeSpace();
-                    hs.get(ngcommits.get(i).getParentSHA1s().get(1)).setSpace(s); 
-                }               
-            }
-            //if only 1 parent
-            else
-            {
-                if(hs.get(ngcommits.get(i).getParentSHA1s().get(0)).getSpace() < 0)
-                {
-                    hs.get(ngcommits.get(i).getParentSHA1s().get(0)).setSpace(ngcommits.get(i).getSpace());
-                }
-                else if(hs.get(ngcommits.get(i).getParentSHA1s().get(0)).getSpace() >= 0)
-                {
-                    if(hs.get(ngcommits.get(i).getParentSHA1s().get(0)).getSpace() > ngcommits.get(i).getSpace())
-                        hs.get(ngcommits.get(i).getParentSHA1s().get(0)).setSpace(ngcommits.get(i).getSpace());
-                }
-            }                     
         }
     }
     
@@ -342,7 +389,7 @@ public class NetworkGraph {
     private void setColors(){
         Random rand = new Random();
         Color clr;
-        for (int i = 0; i < maxSpaces; i++) {
+        for (int i = 0; i < numSpaces; i++) {
             if (colors.get(i) == null) 
             {
                 clr = Color.rgb(rand.nextInt((255 - 1) + 1) + 1,
