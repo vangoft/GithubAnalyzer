@@ -56,13 +56,14 @@ public class Controller implements Initializable {
             //infoReleases.setText(String.valueOf(repo.listReleases().asList().size()));
             //infoContributors.setText(String.valueOf(repo.listContributors().asList().size()));            
             infoDescription.setText(repo.getDescription());
-
+            
+            List<GHRepository> forks = repo.listForks().asList();
             List<GHCommit> commits = repo.listCommits().asList();
             
             if(contentPane.getChildren() != null)
                 contentPane.getChildren().removeAll(contentPane.getChildren());
             
-            NetworkGraph ng = new NetworkGraph(commits, repo);
+            NetworkGraph ng = new NetworkGraph(commits, forks);
             ng.createGraph();
             contentPane.getChildren().addAll(ng.getLines());
             contentPane.getChildren().addAll(ng.getNodes());    

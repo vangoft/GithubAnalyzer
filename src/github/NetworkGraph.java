@@ -9,9 +9,9 @@ package github;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Objects;
 import java.util.Random;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
@@ -29,8 +29,6 @@ import org.kohsuke.github.GHRepository;
  */
 public class NetworkGraph {
     
-    //private List<GHCommit> commits = new ArrayList<>();
-    private GHRepository repo;
     private final List<NGCommit> ngcommits = new ArrayList();
     private final HashMap<String, NGCommit> hs = new HashMap();
     
@@ -43,19 +41,27 @@ public class NetworkGraph {
     private static final int maxSpaces = 100;
     
     
-    public NetworkGraph(List<GHCommit> commits, GHRepository repo)
+    public NetworkGraph(List<GHCommit> commits, List<GHRepository> forks)
     {
-        this.repo = repo;
-        processCommits(commits);
+        processCommits(commits, forks);
         setColors();
     }
     
-    private void processCommits(List<GHCommit> commits){
-        HashMap<String, NGCommit> hs = new HashMap();
+    private void processCommits(List<GHCommit> commits, List<GHRepository> forks){
+        HashMap<String, NGCommit> hm = new HashMap();
         
         //put all commits with new format in hashmap
         for(GHCommit com : commits)
-            hs.put(com.getSHA1(), new NGCommit(com));
+            hm.put(com.getSHA1(), new NGCommit(com));
+        
+        //put fork data in hashmap
+        for(GHRepository fork: forks)
+            for(GHCommit com : fork.listCommits().asList())
+                if(!hm.containsKey(com.getSHA1()))
+                {
+                    hm.put(com.getSHA1(), new NGCommit(com));
+                    commits.add(com);
+                }
         
         //add missing parent/child information
         //reverse list so that earlier date children come first
@@ -63,13 +69,20 @@ public class NetworkGraph {
         for(GHCommit com : commits)
             if(com.getParentSHA1s().size() > 0)
                 for(String sha1 : com.getParentSHA1s())
-                    hs.get(sha1).addChildSHA1(com.getSHA1());        
+                    hm.get(sha1).addChildSHA1(com.getSHA1());        
         
         //undo reverse and add all new commits into list
         Collections.reverse(commits);
         for(GHCommit com: commits)
-            ngcommits.add(hs.get(com.getSHA1()));   
-        
+            ngcommits.add(hm.get(com.getSHA1()));                  
+                
+        //sort new commit list by date
+        Collections.sort(ngcommits, new Comparator<NGCommit>() {
+            public int compare(NGCommit o1, NGCommit o2) {
+                return o2.getDate().compareTo(o1.getDate());
+            }
+        });
+
         processSpaces(ngcommits);
     }
     
@@ -115,13 +128,12 @@ public class NetworkGraph {
                 
             }
 
-
-
             //if no parent, end of commits
             if(ngcommits.get(i).getParentSHA1s().isEmpty())
             {
                 break;
             }
+            
             //if more than 1 parent
             else if(ngcommits.get(i).getParentSHA1s().size() > 1)
             {
@@ -194,8 +206,8 @@ public class NetworkGraph {
         int maxLev = 1;  
         levels.put(ngcommits.get(0).getSHA1(), maxLev);
         
-        for(int i = 0; i < ngcommits.size(); i++)
-            nodes.add(createSingleNode(i, nodes.size(), xOffset, yOffset * (ngcommits.get(i).getSpace()+1) * 0.75, stepSize));
+        for(int i = ngcommits.size() - 1; i >= 0; i--)
+            nodes.add(createSingleNode(i, nodes.size(), xOffset, yOffset * (ngcommits.get(i).getSpace() + 1) * 0.75, stepSize));
         
         for(int i = 0; i < ngcommits.size(); i++)
             drawLine(ngcommits.get(i));
@@ -352,10 +364,10 @@ public class NetworkGraph {
                 {
                     line1 = new Line(posX.get(commit.getParentSHA1s().get(j)),
                         posY.get(commit.getParentSHA1s().get(j)),
-                        posX.get(commit.getParentSHA1s().get(j)) - 4,
+                        posX.get(commit.getParentSHA1s().get(j)) + 4,
                         posY.get(commit.getSHA1()));
 
-                    line2 = new Line(posX.get(commit.getParentSHA1s().get(j)) - 4,
+                    line2 = new Line(posX.get(commit.getParentSHA1s().get(j)) + 4,
                         posY.get(commit.getSHA1()),
                         posX.get(commit.getSHA1()),
                         posY.get(commit.getSHA1()));
@@ -364,10 +376,10 @@ public class NetworkGraph {
                 {
                     line1 = new Line(posX.get(commit.getParentSHA1s().get(j)),
                         posY.get(commit.getParentSHA1s().get(j)),
-                        posX.get(commit.getSHA1()) + 4,
+                        posX.get(commit.getSHA1()) - 4,
                         posY.get(commit.getParentSHA1s().get(j)));
 
-                    line2 = new Line(posX.get(commit.getSHA1()) + 4,
+                    line2 = new Line(posX.get(commit.getSHA1()) - 4,
                         posY.get(commit.getParentSHA1s().get(j)),
                         posX.get(commit.getSHA1()),
                         posY.get(commit.getSHA1()));

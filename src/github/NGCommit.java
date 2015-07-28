@@ -20,20 +20,24 @@ public class NGCommit {
     private final GHCommit commit;
     private final List<String> parentsSha1;
     private final List<String> childrenSha1;
-    private final List<GHCommit> parents;
-    private final List<GHCommit> children;
+    private final String owner;
+    private Date date;
     private int space = -1;
     
     public NGCommit(GHCommit commit){
         this.commit = commit;
         parentsSha1 = commit.getParentSHA1s();
         childrenSha1 = new ArrayList<>();
-        parents = new ArrayList<>();
-        children = new ArrayList<>();
+        owner = commit.getOwner().getFullName();
+        date = commit.getCommitShortInfo().getAuthor().getDate();
     }
         
     public String getAuthor(){
         return commit.getCommitShortInfo().getAuthor().getName();
+    }
+    
+    public String getOwner(){
+        return owner;
     }
     
     public String getMessage(){
@@ -41,7 +45,7 @@ public class NGCommit {
     }
     
     public Date getDate(){
-        return commit.getCommitShortInfo().getAuthor().getDate();
+        return date;
     }
     
     public List<String> getParentSHA1s(){
