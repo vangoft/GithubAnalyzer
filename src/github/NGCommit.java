@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.kohsuke.github.GHCommit;
 
 /**
@@ -28,8 +30,8 @@ public class NGCommit {
         this.commit = commit;
         parentsSha1 = commit.getParentSHA1s();
         childrenSha1 = new ArrayList<>();
-        owner = commit.getOwner().getFullName();
-        date = commit.getCommitShortInfo().getAuthor().getDate();
+        owner = commit.getOwner().getFullName(); 
+        date = commit.getCommitShortInfo().getCommitter().getDate();
     }
         
     public String getAuthor(){

@@ -16,6 +16,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
 import org.kohsuke.github.*;
 
@@ -62,12 +63,15 @@ public class Controller implements Initializable {
             
             if(contentPane.getChildren() != null)
                 contentPane.getChildren().removeAll(contentPane.getChildren());
+
             
             NetworkGraph ng = new NetworkGraph(commits, forks);
             ng.createGraph();
-            contentPane.getChildren().addAll(ng.getLines());
-            contentPane.getChildren().addAll(ng.getNodes());    
             
+            contentPane.getChildren().addAll(ng.getLines());
+            contentPane.getChildren().addAll(ng.getNodes());   
+                        
+
         } catch (IOException ex) {
             Logger.getLogger(Controller.class.getName()).log(Level.WARNING, null, ex);
         }

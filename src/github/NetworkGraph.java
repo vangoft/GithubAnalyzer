@@ -147,11 +147,13 @@ public class NetworkGraph {
                             if(hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getParentSHA1s().size() < 2)
                             {
                                 if(hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getSpace() != ngcommits.get(i).getSpace())
+                                        //&& hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getSpace() != -1)
                                     spaces.put(hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getSpace(), false);
                             }
                             else
                             {
                                 if(hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getSpace() != ngcommits.get(i).getSpace())
+                                        //&& hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getSpace() != -1)
                                     spaces.put(hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getSpace(), false);
 
                                 for(int k = 0; k < hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getParentSHA1s().size(); k++)
@@ -248,13 +250,24 @@ public class NetworkGraph {
         double stepSize = 30;
         double yOffset =  50;
         double xOffset = 50;
+        int multiCnt = 0;
                 
-        HashMap<String, Integer> levels = new HashMap<>();
-        int maxLev = 1;  
-        levels.put(ngcommits.get(0).getSHA1(), maxLev);
+        //HashMap<String, Integer> levels = new HashMap<>();
+        //int maxLev = 1;  
+        //levels.put(ngcommits.get(0).getSHA1(), maxLev);
         
         for(int i = ngcommits.size() - 1; i >= 0; i--)
-            nodes.add(createSingleNode(i, nodes.size(), xOffset, yOffset * (ngcommits.get(i).getSpace() + 1) * 0.75, stepSize));
+        {
+            multiCnt = checkMultiNode(i);
+            
+            if(multiCnt == i)
+                nodes.add(createSingleNode(i, nodes.size(), xOffset, yOffset * (ngcommits.get(i).getSpace() + 1) * 0.75, stepSize));
+            
+            else{
+                nodes.add(createMultiNode(nodes.size(),i ,multiCnt, xOffset, yOffset * (ngcommits.get(i).getSpace() + 1) * 0.75, stepSize));
+                i = multiCnt;
+            }                    
+        }
         
         for(int i = 0; i < ngcommits.size(); i++)
             drawLine(ngcommits.get(i));
@@ -265,42 +278,37 @@ public class NetworkGraph {
     {
         int start = i;
        
-        if(start + 1 >= ngcommits.size())
+        if(start - 1 < 0)
             return start;
         
         //has multiple parents?
         boolean par1 = ngcommits.get(start).getParentSHA1s().size() > 1;
-        boolean par2 = ngcommits.get(start + 1).getParentSHA1s().size() > 1; 
+        boolean par2 = ngcommits.get(start - 1).getParentSHA1s().size() > 1; 
         
         //has multiple children?
         boolean child1 = ngcommits.get(start).getChildrenSHA1s().size() > 1;
-        boolean child2 = ngcommits.get(start + 1).getChildrenSHA1s().size() > 1;
+        boolean child2 = ngcommits.get(start - 1).getChildrenSHA1s().size() > 1;
         
-        //has same author?
-        boolean auth = ngcommits.get(start).getAuthor()
-                    .equals(ngcommits.get(start + 1).getAuthor());
-        
-        boolean samePar = ngcommits.get(start).getParentSHA1s()
-                    .equals(ngcommits.get(start + 1).getParentSHA1s());
+        //has same space?
+        boolean space = ngcommits.get(start).getSpace() == 
+                    ngcommits.get(start - 1).getSpace();
 
 
         while((!par1) && (!par2)
                 && (!child1) && (!child2)
-                && (auth) && (!samePar))
+                && (space))
         {
-            start++;
+            start--;
             
-            if(ngcommits.get(start).getParentSHA1s().size() < 1 || (start >= ngcommits.size() - 1))
+            if(ngcommits.get(start).getParentSHA1s().size() < 1 || (start <=  0))
                 break;
             else {                            
                 par1 = ngcommits.get(start).getParentSHA1s().size() > 1;
-                par2 = ngcommits.get(start + 1).getParentSHA1s().size() > 1; 
+                par2 = ngcommits.get(start - 1).getParentSHA1s().size() > 1; 
                 child1 = ngcommits.get(start).getChildrenSHA1s().size() > 1;
-                child2 = ngcommits.get(start + 1).getChildrenSHA1s().size() > 1;
-                auth = ngcommits.get(start).getAuthor()
-                    .equals(ngcommits.get(start + 1).getAuthor()); 
-                samePar = ngcommits.get(start).getParentSHA1s()
-                    .equals(ngcommits.get(start + 1).getParentSHA1s());
+                child2 = ngcommits.get(start - 1).getChildrenSHA1s().size() > 1;
+                space = ngcommits.get(start).getSpace() == 
+                    ngcommits.get(start - 1).getSpace();                
             }
         }
         return start;
@@ -336,7 +344,7 @@ public class NetworkGraph {
                     colors.get(ngcommits.get(start).getSpace()));
         
         String toolTip = "Author: " + ngcommits.get(start).getAuthor() + "\n\n";
-        for(int i = start; i <= end; i++)
+        for(int i = start; i >= end; i--)
         {
             toolTip += "Commit Date: " + ngcommits.get(i).getDate() + "\n"
                 + "SHA: " + ngcommits.get(i).getSHA1() + "\n"
