@@ -20,6 +20,8 @@ import javafx.scene.image.ImageViewBuilder;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
+import javafx.scene.shape.Rectangle;
+import javafx.scene.shape.Shape;
 import org.kohsuke.github.GHCommit;
 import org.kohsuke.github.GHRepository;
 
@@ -33,12 +35,13 @@ public class NetworkGraph {
     private final HashMap<String, NGCommit> hs = new HashMap();
     
     private final List<Line> lines = new ArrayList<>();
-    private final List<Circle> nodes = new ArrayList<>();
+    private final List<Shape> nodes = new ArrayList<>();
     private final HashMap<String, Double> posX = new HashMap<>();
     private final HashMap<String, Double> posY = new HashMap<>(); 
-    private final HashMap<Integer, Color> colors = new HashMap<>();
+    //private final HashMap<Integer, Color> colors = new HashMap<>();
+    private final ArrayList<Color> colors = new ArrayList();
     private final HashMap<Integer, Boolean> spaces = new HashMap<>();
-    private static final int numSpaces = 100;
+    private static final int numSpaces = 10000;
     
     
     public NetworkGraph(List<GHCommit> commits, List<GHRepository> forks)
@@ -142,31 +145,7 @@ public class NetworkGraph {
                     //remove empty vertical space
                     if(ngcommits.get(i).getChildrenSHA1s().size() > 1)
                     {
-                        for(int j = 0; j < ngcommits.get(i).getChildrenSHA1s().size(); j++)
-                        {
-                            if(hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getParentSHA1s().size() < 2)
-                            {
-                                if(hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getSpace() != ngcommits.get(i).getSpace())
-                                        //&& hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getSpace() != -1)
-                                    spaces.put(hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getSpace(), false);
-                            }
-                            else
-                            {
-                                if(hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getSpace() != ngcommits.get(i).getSpace())
-                                        //&& hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getSpace() != -1)
-                                    spaces.put(hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getSpace(), false);
-
-                                for(int k = 0; k < hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getParentSHA1s().size(); k++)
-                                {
-                                    String parent = hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getParentSHA1s().get(k);
-
-                                    if(!parent.equals(ngcommits.get(i).getSHA1()) 
-                                            && hs.get(parent).getSpace() == hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getSpace())
-                                        spaces.put(hs.get(hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getParentSHA1s().get(k)).getSpace(), true);
-                                }
-                            }
-                        }
-
+                        clearSpaces(ngcommits.get(i));
                     }
 
                     //if no parent, end of commits
@@ -243,6 +222,34 @@ public class NetworkGraph {
         return 0;
     }
     
+    private void clearSpaces(NGCommit ng)
+    {
+        for(int j = 0; j < ng.getChildrenSHA1s().size(); j++)
+        {
+            if(hs.get(ng.getChildrenSHA1s().get(j)).getParentSHA1s().size() < 2)
+            {
+                if(hs.get(ng.getChildrenSHA1s().get(j)).getSpace() != ng.getSpace())
+                        //&& hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getSpace() != -1)
+                    spaces.put(hs.get(ng.getChildrenSHA1s().get(j)).getSpace(), false);
+            }
+            else
+            {
+                if(hs.get(ng.getChildrenSHA1s().get(j)).getSpace() != ng.getSpace())
+                        //&& hs.get(ngcommits.get(i).getChildrenSHA1s().get(j)).getSpace() != -1)
+                    spaces.put(hs.get(ng.getChildrenSHA1s().get(j)).getSpace(), false);
+
+                for(int k = 0; k < hs.get(ng.getChildrenSHA1s().get(j)).getParentSHA1s().size(); k++)
+                {
+                    String parent = hs.get(ng.getChildrenSHA1s().get(j)).getParentSHA1s().get(k);
+
+                    if(!parent.equals(ng.getSHA1()) 
+                            && hs.get(parent).getSpace() == hs.get(ng.getChildrenSHA1s().get(j)).getSpace())
+                        spaces.put(hs.get(hs.get(ng.getChildrenSHA1s().get(j)).getParentSHA1s().get(k)).getSpace(), true);
+                }
+            }
+        }
+    }
+    
     public void createGraph() throws IOException
     {
         //Collections.reverse(ngcommits);
@@ -251,11 +258,7 @@ public class NetworkGraph {
         double yOffset =  50;
         double xOffset = 50;
         int multiCnt = 0;
-                
-        //HashMap<String, Integer> levels = new HashMap<>();
-        //int maxLev = 1;  
-        //levels.put(ngcommits.get(0).getSHA1(), maxLev);
-        
+                        
         for(int i = ngcommits.size() - 1; i >= 0; i--)
         {
             multiCnt = checkMultiNode(i);
@@ -264,7 +267,7 @@ public class NetworkGraph {
                 nodes.add(createSingleNode(i, nodes.size(), xOffset, yOffset * (ngcommits.get(i).getSpace() + 1) * 0.75, stepSize));
             
             else{
-                nodes.add(createMultiNode(nodes.size(),i ,multiCnt, xOffset, yOffset * (ngcommits.get(i).getSpace() + 1) * 0.75, stepSize));
+                nodes.add(createMultiNode2(nodes.size(),i ,multiCnt, xOffset, yOffset * (ngcommits.get(i).getSpace() + 1) * 0.75, stepSize));
                 i = multiCnt;
             }                    
         }
@@ -293,7 +296,6 @@ public class NetworkGraph {
         boolean space = ngcommits.get(start).getSpace() == 
                     ngcommits.get(start - 1).getSpace();
 
-
         while((!par1) && (!par2)
                 && (!child1) && (!child2)
                 && (space))
@@ -319,7 +321,7 @@ public class NetworkGraph {
         Circle node = new Circle(pos * stepSize + xOffset,
                     yOffset,
                     5,
-                    colors.get(ngcommits.get(i).getSpace()));
+                    colors.get(ngcommits.get(i).getSpace() % 8));
         
         Tooltip tt = new Tooltip("Author: " + ngcommits.get(i).getAuthor() + "\n\n"
                 + "Commit Date: " + ngcommits.get(i).getDate() + "\n"
@@ -336,12 +338,39 @@ public class NetworkGraph {
         return node;
     }
     
+    private Rectangle createMultiNode2(double pos, int start, int end, double xOffset, double yOffset, double stepSize)
+    {      
+        Rectangle rec = new Rectangle(pos * stepSize + xOffset - 5,
+                    yOffset - 5,
+                    10,10);
+        rec.setStroke(colors.get(ngcommits.get(start).getSpace() % 8));
+        rec.setFill(colors.get(ngcommits.get(start).getSpace() % 8));
+                
+        String toolTip = "Author: " + ngcommits.get(start).getAuthor() + "\n\n";
+        for(int i = start; i >= end; i--)
+        {
+            toolTip += "Commit Date: " + ngcommits.get(i).getDate() + "\n"
+                + "SHA: " + ngcommits.get(i).getSHA1() + "\n"
+                + "Commit Info: " + ngcommits.get(i).getMessage() + "\n\n";
+            
+            posX.put(ngcommits.get(i).getSHA1(), rec.getX() + 5);
+            posY.put(ngcommits.get(i).getSHA1(), rec.getY() + 5);
+        }
+        Tooltip tt = new Tooltip(toolTip);   
+        
+        //getAvatar(tt, ngcommits.get(start));
+        
+        Tooltip.install(rec, tt);
+        
+        return rec;
+    }
+    
     private Circle createMultiNode(double pos, int start, int end, double xOffset, double yOffset, double stepSize)
     {        
         Circle node = new Circle(pos * stepSize + xOffset,
                     yOffset,
                     5,
-                    colors.get(ngcommits.get(start).getSpace()));
+                    colors.get(ngcommits.get(start).getSpace() % 8));
         
         String toolTip = "Author: " + ngcommits.get(start).getAuthor() + "\n\n";
         for(int i = start; i >= end; i--)
@@ -395,27 +424,44 @@ public class NetworkGraph {
     }
         
     private void setColors(){
-        Random rand = new Random();
-        Color clr;
-        for (int i = 0; i < numSpaces; i++) {
-            if (colors.get(i) == null) 
-            {
-                clr = Color.rgb(rand.nextInt((255 - 1) + 1) + 1,
-                        rand.nextInt((255 - 1) + 1) + 1,
-                        rand.nextInt((255 - 1) + 1) + 1);
-                colors.put(i, clr);
-            }
-        }
+        colors.add(Color.BLACK);
+        colors.add(Color.CORNFLOWERBLUE);
+        colors.add(Color.ORANGE);
+        colors.add(Color.LIGHTSEAGREEN);       
+        colors.add(Color.MEDIUMORCHID);
+        colors.add(Color.PLUM);
+        colors.add(Color.SALMON);
+        colors.add(Color.SLATEBLUE);
     }
            
     private void drawLine(NGCommit commit) throws IOException
     {
             for(int j = 0; j < commit.getParentSHA1s().size(); j++)
             {                
-                Line line1 = null;
+                Line line1;
                 Line line2 = null;
+                Line line3 = null;
+                
+                //downmerge
+                if((j == 1) && posY.get(commit.getParentSHA1s().get(j)) < posY.get(commit.getSHA1()))
+                {
+                    line1 = new Line(posX.get(commit.getParentSHA1s().get(j)),
+                        posY.get(commit.getParentSHA1s().get(j)),
+                        posX.get(commit.getParentSHA1s().get(j)) + 4,
+                        posY.get(commit.getSHA1()) - 10);
 
-                if(posY.get(commit.getParentSHA1s().get(j)) < posY.get(commit.getSHA1()))
+                    line2 = new Line(posX.get(commit.getParentSHA1s().get(j)) + 4,
+                        posY.get(commit.getSHA1()) - 10,
+                        posX.get(commit.getSHA1()) - 4,
+                        posY.get(commit.getSHA1()) - 10);
+                    
+                    line3 = new Line(posX.get(commit.getSHA1()) - 4,
+                        posY.get(commit.getSHA1()) - 10,
+                        posX.get(commit.getSHA1()),
+                        posY.get(commit.getSHA1()));
+                }
+                //downfork
+                else if(posY.get(commit.getParentSHA1s().get(j)) < posY.get(commit.getSHA1()))
                 {
                     line1 = new Line(posX.get(commit.getParentSHA1s().get(j)),
                         posY.get(commit.getParentSHA1s().get(j)),
@@ -427,6 +473,7 @@ public class NetworkGraph {
                         posX.get(commit.getSHA1()),
                         posY.get(commit.getSHA1()));
                 }
+                //upmerge
                 else if(posY.get(commit.getParentSHA1s().get(j)) > posY.get(commit.getSHA1()))
                 {
                     line1 = new Line(posX.get(commit.getParentSHA1s().get(j)),
@@ -439,28 +486,36 @@ public class NetworkGraph {
                         posX.get(commit.getSHA1()),
                         posY.get(commit.getSHA1()));
                 }
+                //simple line
                 else
                     line1 = new Line(posX.get(commit.getParentSHA1s().get(j)),
                         posY.get(commit.getParentSHA1s().get(j)),
                         posX.get(commit.getSHA1()),
                         posY.get(commit.getSHA1()));
-
+                
+                //color the lines
                 if(j == 0)
                 {
-                    line1.setStroke(colors.get(commit.getSpace()));
+                    line1.setStroke(colors.get(commit.getSpace() % 8));
                     if(line2 != null)
-                        line2.setStroke(colors.get(commit.getSpace()));
+                        line2.setStroke(colors.get(commit.getSpace() % 8));
+                    if(line3 != null)
+                        line3.setStroke(colors.get(commit.getSpace() % 8));
                 }
                 if(j == 1)
                 {
-                    line1.setStroke(colors.get(hs.get(commit.getParentSHA1s().get(j)).getSpace()));
+                    line1.setStroke(colors.get(hs.get(commit.getParentSHA1s().get(j)).getSpace() % 8));
                     if(line2 != null)
-                        line2.setStroke(colors.get(hs.get(commit.getParentSHA1s().get(j)).getSpace()));
+                        line2.setStroke(colors.get(hs.get(commit.getParentSHA1s().get(j)).getSpace() % 8));
+                    if(line3 != null)
+                        line2.setStroke(colors.get(hs.get(commit.getParentSHA1s().get(j)).getSpace() % 8));
                 }
                 
                 lines.add(line1);
                 if(line2 != null)
                     lines.add(line2);
+                if(line3 != null)
+                    lines.add(line3);
             }
     }
         
