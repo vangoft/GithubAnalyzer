@@ -12,11 +12,13 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.Group;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
-import javafx.scene.image.ImageView;
+import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.AnchorPane;
 import org.kohsuke.github.*;
 
@@ -68,8 +70,30 @@ public class Controller implements Initializable {
             NetworkGraph ng = new NetworkGraph(commits, forks);
             ng.createGraph();
             
-            contentPane.getChildren().addAll(ng.getLines());
-            contentPane.getChildren().addAll(ng.getNodes());   
+            Group content = new Group();
+            content.getChildren().addAll(ng.getLines());
+            content.getChildren().addAll(ng.getNodes());
+            
+            //contentPane.getChildren().addAll(ng.getLines());
+            //contentPane.getChildren().addAll(ng.getNodes()); 
+            
+            contentPane.getChildren().add(content);
+            
+            contentPane.setOnScroll(
+            new EventHandler<ScrollEvent>() {
+              @Override
+              public void handle(ScrollEvent event) {
+                double zoomFactor = 1.05;
+                double deltaY = event.getDeltaY();
+                if (deltaY < 0){
+                  zoomFactor = 2.0 - zoomFactor;
+                }
+                System.out.println(zoomFactor);
+                content.setScaleX(content.getScaleX() * zoomFactor);
+                content.setScaleY(content.getScaleY() * zoomFactor);
+                event.consume();
+              }
+            });
                         
 
         } catch (IOException ex) {
@@ -81,6 +105,5 @@ public class Controller implements Initializable {
     @Override
     public void initialize(URL url, ResourceBundle rb) {
         // TODO
-    }    
-    
+    }        
 }
