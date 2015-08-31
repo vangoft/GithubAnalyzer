@@ -29,6 +29,9 @@
             <Label fx:id="infoContributors" layoutY="201.0" prefHeight="16.0" prefWidth="90.0" textAlignment="RIGHT" AnchorPane.rightAnchor="10.0" />
             <Text layoutY="244.0" strokeType="OUTSIDE" strokeWidth="0.0" text="description" AnchorPane.leftAnchor="10.0" />
             <Label fx:id="infoDescription" layoutX="5.0" layoutY="258.0" prefHeight="216.0" prefWidth="177.0" />
+            <Button id="loadButton" fx:id="openFileButton" layoutX="12.0" layoutY="262.0" mnemonicParsing="false" onAction="#openFileButtonAction" prefHeight="26.0" prefWidth="163.0" text="open file" />
+            <Button id="loadButton" fx:id="loadFileButton" layoutX="12.0" layoutY="297.0" mnemonicParsing="false" onAction="#loadFileButtonAction" prefHeight="26.0" prefWidth="163.0" text="load file" />
+            <Button id="loadButton" fx:id="saveFileButton" layoutX="12.0" layoutY="333.0" mnemonicParsing="false" onAction="#saveFileButtonAction" prefHeight="26.0" prefWidth="163.0" text="save file" />
           </children>
         </AnchorPane>
         <ScrollPane prefHeight="478.0" prefWidth="389.0">

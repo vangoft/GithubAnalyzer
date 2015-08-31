@@ -12,11 +12,15 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Random;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javafx.scene.Group;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.ImageViewBuilder;
+import javafx.scene.input.ScrollEvent;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
@@ -33,6 +37,7 @@ public class NetworkGraph {
     
     private final List<NGCommit> ngcommits = new ArrayList();
     private final HashMap<String, NGCommit> hs = new HashMap();
+    private final AnchorPane contentPane;
     
     private final List<Line> lines = new ArrayList<>();
     private final List<Shape> nodes = new ArrayList<>();
@@ -42,12 +47,14 @@ public class NetworkGraph {
     private final ArrayList<Color> colors = new ArrayList();
     private final HashMap<Integer, Boolean> spaces = new HashMap<>();
     private static final int numSpaces = 10000;
+    private final HashMap<String, List<NGCommit>> multiActive = new HashMap<>();
+    private final HashMap<String, List<NGCommit>> multiInactive = new HashMap<>();
     
-    
-    public NetworkGraph(List<GHCommit> commits, List<GHRepository> forks)
+    public NetworkGraph(List<GHCommit> commits, List<GHRepository> forks, AnchorPane cp)
     {
         processCommits(commits, forks);
         setColors();
+        contentPane = cp;
     }
     
     private void processCommits(List<GHCommit> commits, List<GHRepository> forks){
@@ -209,6 +216,12 @@ public class NetworkGraph {
                     maxSpace = tempMaxSpace + 1;
             }
         }
+        
+        try {
+            processMultiCommits();
+        } catch (IOException ex) {
+            Logger.getLogger(NetworkGraph.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
     
     private int getFreeSpace()
@@ -250,31 +263,123 @@ public class NetworkGraph {
         }
     }
     
-    public void createGraph() throws IOException
-    {
-        //Collections.reverse(ngcommits);
-        
+    public void drawGraph() throws IOException
+    {       
         double stepSize = 30;
         double yOffset =  50;
         double xOffset = 50;
-        int multiCnt = 0;
                         
+        //clear nodes and lines
+        nodes.clear();
+        lines.clear();
+        
+        
         for(int i = ngcommits.size() - 1; i >= 0; i--)
-        {
-            multiCnt = checkMultiNode(i);
-            
-            if(multiCnt == i)
+        {            
+            if(!multiActive.containsKey(ngcommits.get(i).getSHA1()))
                 nodes.add(createSingleNode(i, nodes.size(), xOffset, yOffset * (ngcommits.get(i).getSpace() + 1) * 0.75, stepSize));
             
             else{
-                nodes.add(createMultiNode2(nodes.size(),i ,multiCnt, xOffset, yOffset * (ngcommits.get(i).getSpace() + 1) * 0.75, stepSize));
-                i = multiCnt;
+                int multiSize = i - multiActive.get(ngcommits.get(i).getSHA1()).size() + 1;
+                
+                nodes.add(createMultiNode2(nodes.size(),i ,multiSize, xOffset, yOffset * (ngcommits.get(i).getSpace() + 1) * 0.75, stepSize));
+                i = multiSize;
             }                    
         }
         
         for(int i = 0; i < ngcommits.size(); i++)
-            drawLine(ngcommits.get(i));
+            createLine(ngcommits.get(i));
         
+        //erase contentPane content
+         if(contentPane.getChildren() != null)
+            contentPane.getChildren().removeAll(contentPane.getChildren());
+
+        //add to contentpane
+        Group content = new Group();
+        content.getChildren().addAll(lines);
+        content.getChildren().addAll(nodes);
+
+        contentPane.getChildren().add(content);      
+        
+        contentPane.setOnScroll(
+            (ScrollEvent event) -> {
+                double zoomFactor = 1.05;
+                double deltaY = event.getDeltaY();
+                if (deltaY < 0){
+                    zoomFactor = 2.0 - zoomFactor;
+                }
+                //System.out.println(zoomFactor);
+                content.setScaleX(content.getScaleX() * zoomFactor);
+                content.setScaleY(content.getScaleY() * zoomFactor);
+                event.consume();
+        });
+        
+    }
+    
+    /* put all multicommits in map for expansion/reduction */
+    public void processMultiCommits() throws IOException
+    {
+        int multiCnt = 0;
+        for(int i = ngcommits.size() - 1; i > 0; i--)
+        {
+            multiCnt = checkMultiNode(i);
+            
+            if(multiCnt == i)
+                continue;
+            
+            else
+            {
+                List<NGCommit> multi = new ArrayList<>();
+                
+                for(int j = i; j >= multiCnt; j--)
+                {
+                    multi.add(ngcommits.get(j));
+                }
+                
+                multiActive.put(ngcommits.get(i).getSHA1(), multi); 
+                i = multiCnt;
+            }                    
+        }
+    }
+    
+    private void checkMultiActive(String sha)
+    {
+        //expansion
+        if(multiActive.containsKey(sha))
+        {
+            List<NGCommit> active = multiActive.get(sha);
+            
+            //add multiActive content to multiInactive
+            for(int i = 0; i < active.size(); i++)            
+                multiInactive.put(active.get(i).getSHA1(), active);
+            
+            
+            //remove multiActive content
+            multiActive.remove(sha);
+            
+            try {
+                drawGraph();
+            } catch (IOException ex) {
+                Logger.getLogger(NetworkGraph.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        else
+        {
+            List<NGCommit> inactive = multiInactive.get(sha);
+            
+            //add multiInactive to multiActive
+            multiActive.put(inactive.get(0).getSHA1(), inactive);
+            
+            //remove multiInactive content
+            for(int i = 0; i < inactive.size(); i++)
+                multiInactive.remove(inactive.get(i).getSHA1());
+                
+            try {
+                drawGraph();
+            } catch (IOException ex) {
+                Logger.getLogger(NetworkGraph.class.getName()).log(Level.SEVERE, null, ex);
+            }            
+        }
     }
                 
     private int checkMultiNode(int i)
@@ -331,6 +436,18 @@ public class NetworkGraph {
         //getAvatar(tt, ngcommits.get(i));
         
         Tooltip.install(node, tt);
+        node.setId(ngcommits.get(i).getSHA1());
+        
+        
+        //click event for expansion/reduction
+        
+
+        node.setOnMouseClicked(e -> {
+            System.out.println(node.getId());
+            checkMultiActive(node.getId());
+            e.consume();
+        });
+        
         
         posX.put(ngcommits.get(i).getSHA1(), node.getCenterX());
         posY.put(ngcommits.get(i).getSHA1(), node.getCenterY());
@@ -357,8 +474,15 @@ public class NetworkGraph {
             posY.put(ngcommits.get(i).getSHA1(), rec.getY() + 5);
         }
         Tooltip tt = new Tooltip(toolTip);   
-        
         //getAvatar(tt, ngcommits.get(start));
+        
+        rec.setId(ngcommits.get(start).getSHA1());
+        
+        rec.setOnMouseClicked(e -> {
+            System.out.println(rec.getId());
+            checkMultiActive(rec.getId());
+            e.consume();
+        });
         
         Tooltip.install(rec, tt);
         
@@ -434,7 +558,7 @@ public class NetworkGraph {
         colors.add(Color.SLATEBLUE);
     }
            
-    private void drawLine(NGCommit commit) throws IOException
+    private void createLine(NGCommit commit) throws IOException
     {
             for(int j = 0; j < commit.getParentSHA1s().size(); j++)
             {                
