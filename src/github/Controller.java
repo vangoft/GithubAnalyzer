@@ -91,10 +91,15 @@ public class Controller implements Initializable {
 
             loadNetworkGraph();                        
 
-        } catch (IOException ex) {
-            Logger.getLogger(Controller.class.getName()).log(Level.WARNING, null, ex);
-        }
-
+        } catch (Exception ex) {
+                Alert alert = new Alert(AlertType.INFORMATION);
+                alert.setTitle("error");
+                alert.setHeaderText(null);
+                alert.setContentText("repository not found. check the spelling.");
+                alert.showAndWait();
+                
+                ex.printStackTrace();
+        } 
     }
     
     

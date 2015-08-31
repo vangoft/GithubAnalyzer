@@ -24,7 +24,8 @@ public class NGCommit {
     private final List<String> childrenSha1;
     private final String owner;
     private Date date;
-    private int space = -1;
+    private int spaceExpanded = -1;
+    private int spaceCompact = -1;
     
     public NGCommit(GHCommit commit){
         this.commit = commit;
@@ -75,14 +76,24 @@ public class NGCommit {
         return commit.getAuthor().getAvatarUrl();
     }
     
-    public void setSpace(int space)
+    public void setExpandedSpace(int space)
     {
-        this.space = space;
+        this.spaceExpanded = space;
     }
     
-    public int getSpace()
+    public int getExpandedSpace()
     {
-        return space;
+        return spaceExpanded;
+    }
+    
+    public void setCompactSpace(int space)
+    {
+        this.spaceCompact = space;
+    }
+    
+    public int getCompactSpace()
+    {
+        return spaceCompact;
     }
 
 }
