@@ -14,6 +14,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.scene.Group;
@@ -53,7 +54,7 @@ public class NetworkGraph {
     private final HashMap<String, List<NGCommit>> multiActive = new HashMap<>();
     private final HashMap<String, List<NGCommit>> multiInactive = new HashMap<>();
     
-    private boolean expanded = true;
+    private boolean compact = true;
     
     public NetworkGraph(List<GHCommit> commits, List<GHRepository> forks, AnchorPane cp)
     {
@@ -297,14 +298,6 @@ public class NetworkGraph {
                 //compute difference to spacing
                 int diff = currMin - (spacing.get(currFirst) + 1);
                 
-//                for(int i = currFirst; i <= currLast; i++)
-//                {
-//                    if(owner.equals(commits.get(i).getOwner()))
-//                    {
-//                        diff = currMin - (spacing.get(i) + 1);
-//                    }
-//                }
-                
                 for(int i = currFirst; i <= commits.indexOf(hs.get(commits.get(currLast).getParentSHA1s().get(0))); i++)
                 {
                     if(owner.equals(commits.get(i).getOwner()))
@@ -371,13 +364,16 @@ public class NetworkGraph {
         
         for(int i = ngcommits.size() - 1; i >= 0; i--)
         {            
-            if(!multiActive.containsKey(ngcommits.get(i).getSHA1()))
+            if(!multiActive.containsKey(ngcommits.get(i).getSHA1()) && compact)
                 nodes.add(createSingleNode(i, nodes.size(), xOffset, yOffset * (ngcommits.get(i).getExpandedSpace() + 1) * 0.75, stepSize));
-            
+            else if(!multiActive.containsKey(ngcommits.get(i).getSHA1()) && !compact)
+                nodes.add(createSingleNode(i, nodes.size(), xOffset, yOffset * (ngcommits.get(i).getCompactSpace() + 1) * 0.75, stepSize));
             else{
                 int multiSize = i - multiActive.get(ngcommits.get(i).getSHA1()).size() + 1;
-                
-                nodes.add(createMultiNode2(nodes.size(),i ,multiSize, xOffset, yOffset * (ngcommits.get(i).getExpandedSpace() + 1) * 0.75, stepSize));
+                if(compact)
+                    nodes.add(createMultiNode2(nodes.size(),i ,multiSize, xOffset, yOffset * (ngcommits.get(i).getExpandedSpace() + 1) * 0.75, stepSize));
+                else
+                    nodes.add(createMultiNode2(nodes.size(),i ,multiSize, xOffset, yOffset * (ngcommits.get(i).getCompactSpace() + 1) * 0.75, stepSize));
                 i = multiSize;
             }                    
         }
@@ -437,7 +433,65 @@ public class NetworkGraph {
         }
     }
     
-    private void checkMultiActive(String sha)
+    public void toggleAllMulti()
+    {
+        if(!multiActive.isEmpty())
+        {
+            List<List<NGCommit>> active = new ArrayList<>();
+            
+            Iterator it = multiActive.entrySet().iterator();
+            while (it.hasNext()) 
+            {
+               Map.Entry pair = (Map.Entry)it.next();
+               active.add((List) pair.getValue());
+               it.remove();
+            }
+            
+            for(int i = 0; i < active.size(); i++)
+            {
+                for(int j = 0; j < active.get(i).size(); j++)
+                {
+                    multiInactive.put(active.get(i).get(j).getSHA1(), active.get(i));
+                }
+            }
+            
+            multiActive.clear();
+            
+            try {
+                drawGraph();
+            } catch (IOException ex) {
+                Logger.getLogger(NetworkGraph.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        else if(!multiInactive.isEmpty())
+        {
+            List<List<NGCommit>> inactive = new ArrayList<>();
+            
+            Iterator it = multiInactive.entrySet().iterator();
+            while (it.hasNext()) 
+            {
+               Map.Entry pair = (Map.Entry)it.next();
+               inactive.add((List) pair.getValue());
+               it.remove();
+            }
+            
+            for(int i = 0; i < inactive.size(); i++)
+            {
+                if(!multiActive.containsKey(inactive.get(i).get(0).getSHA1()))
+                    multiActive.put(inactive.get(i).get(0).getSHA1(), inactive.get(i));
+            }
+            
+            multiInactive.clear();
+            
+            try {
+                drawGraph();
+            } catch (IOException ex) {
+                Logger.getLogger(NetworkGraph.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+    }
+    
+    private void toggleSingleMulti(String sha)
     {
         //expansion
         if(multiActive.containsKey(sha))
@@ -514,7 +568,24 @@ public class NetworkGraph {
             }
         }
         return start;
-    }   
+    } 
+    
+    public void toggleCompact()
+    {
+        //if is compact, shrink
+        if(compact)
+            compact = false;
+
+        //else expand
+        else
+            compact = true;
+        
+        try {
+            drawGraph();
+        } catch (IOException ex) {
+            Logger.getLogger(NetworkGraph.class.getName()).log(Level.SEVERE, null, ex);
+        }     
+    }
     
     private Circle createSingleNode(int i, double pos, double xOffset, double yOffset, double stepSize){
              
@@ -539,7 +610,7 @@ public class NetworkGraph {
 
         node.setOnMouseClicked(e -> {
             System.out.println(node.getId());
-            checkMultiActive(node.getId());
+            toggleSingleMulti(node.getId());
             e.consume();
         });
         
@@ -575,7 +646,7 @@ public class NetworkGraph {
         
         rec.setOnMouseClicked(e -> {
             System.out.println(rec.getId());
-            checkMultiActive(rec.getId());
+            toggleSingleMulti(rec.getId());
             e.consume();
         });
         

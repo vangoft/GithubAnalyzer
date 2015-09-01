@@ -32,6 +32,8 @@
             <Button id="loadButton" fx:id="openFileButton" layoutX="12.0" layoutY="262.0" mnemonicParsing="false" onAction="#openFileButtonAction" prefHeight="26.0" prefWidth="163.0" text="open file" />
             <Button id="loadButton" fx:id="loadFileButton" layoutX="12.0" layoutY="297.0" mnemonicParsing="false" onAction="#loadFileButtonAction" prefHeight="26.0" prefWidth="163.0" text="load file" />
             <Button id="loadButton" fx:id="saveFileButton" layoutX="12.0" layoutY="333.0" mnemonicParsing="false" onAction="#saveFileButtonAction" prefHeight="26.0" prefWidth="163.0" text="save file" />
+            <Button id="loadButton" fx:id="toggleMultiButton" layoutX="12.0" layoutY="402.0" mnemonicParsing="false" onAction="#toggleMultiButtonAction" prefHeight="26.0" prefWidth="163.0" text="toggle multicommits" />
+            <Button id="loadButton" fx:id="toggleExpandButton" layoutX="12.0" layoutY="438.0" mnemonicParsing="false" onAction="#toggleExpandButtonAction" prefHeight="26.0" prefWidth="163.0" text="expand/compress" />
           </children>
         </AnchorPane>
         <ScrollPane prefHeight="478.0" prefWidth="389.0">

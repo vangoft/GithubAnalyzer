@@ -18,15 +18,12 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.event.ActionEvent;
-import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.scene.Group;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
-import javafx.scene.input.ScrollEvent;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.FileChooser;
 import org.kohsuke.github.*;
@@ -112,7 +109,7 @@ public class Controller implements Initializable {
     }
     
     @FXML
-    private void loadFileButtonAction(ActionEvent event) throws IOException, ClassNotFoundException {   
+    private void loadFileButtonAction(ActionEvent event){   
         if(filePath == null)
         {
             Alert alert = new Alert(AlertType.INFORMATION);
@@ -145,7 +142,7 @@ public class Controller implements Initializable {
     }
     
     @FXML
-    private void saveFileButtonAction(ActionEvent event) throws IOException {
+    private void saveFileButtonAction(ActionEvent event) {
 
         File file = fileChooser.showSaveDialog(contentPane.getScene().getWindow());
             if (file != null) {
@@ -182,7 +179,18 @@ public class Controller implements Initializable {
             ng.drawGraph();
         } catch (IOException ex) {
             Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
-        }
-            
-    }    
+        }            
+    }  
+    
+        
+    @FXML
+    private void toggleMultiButtonAction(ActionEvent event){
+        ng.toggleAllMulti();
+    }
+    
+    @FXML
+    private void toggleExpandButtonAction(ActionEvent event){
+        ng.toggleCompact();
+    }
+    
 }
