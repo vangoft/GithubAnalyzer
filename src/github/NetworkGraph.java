@@ -388,10 +388,11 @@ public class NetworkGraph {
             else{
                 int multiSize = i - multiActive.get(ngcommits.get(i).getSHA1()).size() + 1;
                 if(!compact)
-                    nodes.add(createMultiNode2(nodes.size(),i ,multiSize, xOffset, yOffset * (ngcommits.get(i).getExpandedSpace() + 1) * 0.75, stepSize));
+                    nodes.add(createMultiNode(nodes.size(),i ,multiSize, xOffset, yOffset * (ngcommits.get(i).getExpandedSpace() + 1) * 0.75, stepSize));
                 else
-                    nodes.add(createMultiNode2(nodes.size(),i ,multiSize, xOffset, yOffset * (ngcommits.get(i).getCompactSpace() + 1) * 0.75, stepSize));
+                    nodes.add(createMultiNode(nodes.size(),i ,multiSize, xOffset, yOffset * (ngcommits.get(i).getCompactSpace() + 1) * 0.75, stepSize));
                 i = multiSize;
+                xOffset += 30;
             }                    
         }
         
@@ -691,11 +692,13 @@ public class NetworkGraph {
         }
     }
     
-    private Rectangle createMultiNode2(double pos, int start, int end, double xOffset, double yOffset, double stepSize)
+    private Rectangle createMultiNode(double pos, int start, int end, double xOffset, double yOffset, double stepSize)
     {      
         Rectangle rec = new Rectangle(pos * stepSize + xOffset - 5,
                     yOffset - 5,
-                    10,10);
+                    40,10);
+        rec.setArcHeight(10);
+        rec.setArcWidth(10);
         
         rec.setStroke(getColor(ngcommits.get(start)));
         rec.setFill(getColor(ngcommits.get(start)));
@@ -709,6 +712,7 @@ public class NetworkGraph {
             
             posX.put(ngcommits.get(i).getSHA1(), rec.getX() + 5);
             posY.put(ngcommits.get(i).getSHA1(), rec.getY() + 5);
+            ngcommits.get(i).setMulti(true);
         }
         Tooltip tt = new Tooltip(toolTip);   
         //getAvatar(tt, ngcommits.get(start));
@@ -723,32 +727,6 @@ public class NetworkGraph {
         Tooltip.install(rec, tt);
         
         return rec;
-    }
-    
-    private Circle createMultiNode(double pos, int start, int end, double xOffset, double yOffset, double stepSize)
-    {        
-        Circle node = new Circle(pos * stepSize + xOffset,
-                    yOffset,
-                    5,
-                    getColor(ngcommits.get(start)));
-        
-        String toolTip = "Author: " + ngcommits.get(start).getAuthor() + "\n\n";
-        for(int i = start; i >= end; i--)
-        {
-            toolTip += "Commit Date: " + ngcommits.get(i).getDate() + "\n"
-                + "SHA: " + ngcommits.get(i).getSHA1() + "\n"
-                + "Commit Info: " + ngcommits.get(i).getMessage() + "\n\n";
-            
-            posX.put(ngcommits.get(i).getSHA1(), node.getCenterX());
-            posY.put(ngcommits.get(i).getSHA1(), node.getCenterY());
-        }
-        Tooltip tt = new Tooltip(toolTip);   
-        
-        //getAvatar(tt, ngcommits.get(start));
-        
-        Tooltip.install(node, tt);
-        
-        return node;
     }
     
     private void getAvatar(Tooltip tt, NGCommit commit)
@@ -893,6 +871,8 @@ public class NetworkGraph {
         String owner = "";   
         String sha1 = "";
         Iterator it = txtLabels.entrySet().iterator(); 
+        Double offset = 10.0;
+
         
         while (it.hasNext()) 
         {
@@ -905,11 +885,11 @@ public class NetworkGraph {
             
             String[] parts = owner.split("/");            
             Text txt = new Text("\u25CF " + parts[0]);
-            //txt.setRotate(90);
-            //txt.setScaleX(1);
-            //txt.setStroke(Color.BLACK);
             txt.setFill(getColor(hs.get(sha1)));
-            txt.setX(x + 10);
+            offset = hs.get(sha1).getMulti() ? 40.0 : 10.0;
+            offset = multiInactive.containsKey(sha1) ? 10.0 : 40.0;
+            
+            txt.setX(hs.get(sha1).getMulti() ? (x + offset) : (x + 10));
             txt.setY(y + 3);
             
             grp.getChildren().add(txt);            

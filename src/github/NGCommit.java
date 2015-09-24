@@ -10,8 +10,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.kohsuke.github.GHCommit;
 
 /**
@@ -23,9 +21,11 @@ public class NGCommit {
     private final List<String> parentsSha1;
     private final List<String> childrenSha1;
     private final String owner;
-    private Date date;
+    private final Date date;
     private int spaceExpanded = -1;
     private int spaceCompact = -1;
+    
+    boolean multi = false;
     
     public NGCommit(GHCommit commit){
         this.commit = commit;
@@ -33,6 +33,16 @@ public class NGCommit {
         childrenSha1 = new ArrayList<>();
         owner = commit.getOwner().getFullName(); 
         date = commit.getCommitShortInfo().getCommitter().getDate();
+    }
+    
+    public void setMulti(boolean bool)
+    {
+        multi = bool;
+    }
+    
+    public boolean getMulti()
+    {
+        return multi;
     }
         
     public String getAuthor(){
