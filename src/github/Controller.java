@@ -17,12 +17,17 @@ import java.net.URL;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.AnchorPane;
 import javafx.stage.FileChooser;
@@ -51,6 +56,13 @@ public class Controller implements Initializable {
     private Label infoDescription;
     @FXML
     private AnchorPane contentPane;
+    @FXML
+    private AnchorPane labelPane;
+    
+    @FXML
+    private ScrollPane labelScrollPane;
+    @FXML
+    private ScrollPane contentScrollPane;
     
     
     /* filechooser stuff */
@@ -83,9 +95,16 @@ public class Controller implements Initializable {
             //List<GHRepository> forks = repo.listForks().asList();
             //List<GHCommit> commits = repo.listCommits().asList();
             
-            if(contentPane.getChildren() != null)
-                contentPane.getChildren().removeAll(contentPane.getChildren());
-
+            
+            DoubleProperty vPosition = new SimpleDoubleProperty();
+                vPosition.bind(contentScrollPane.vvalueProperty());
+                vPosition.addListener(new ChangeListener() {
+                    @Override
+                    public void changed(ObservableValue arg0, Object arg1, Object arg2) {
+                    labelScrollPane.setVvalue((double) arg2);
+                    }
+             }); 
+            
             loadNetworkGraph();                        
 
         } catch (Exception ex) {
@@ -170,11 +189,15 @@ public class Controller implements Initializable {
     
     private void loadNetworkGraph()
     {
-        //erase contentPane content
-        if(contentPane.getChildren() != null)
-            contentPane.getChildren().removeAll(contentPane.getChildren());
+//        //erase contentPane content
+//        if(contentPane.getChildren() != null)
+//            contentPane.getChildren().removeAll(contentPane.getChildren());
+//        
+//        //erase labelPane content
+//        if(labelPane.getChildren() != null)
+//            labelPane.getChildren().removeAll(labelPane.getChildren());
             
-        ng = new NetworkGraph(fileSaver.getCommits(), fileSaver.getForks(), contentPane);
+        ng = new NetworkGraph(fileSaver.getCommits(), fileSaver.getForks(), contentPane, labelPane, contentScrollPane);
         try {
             ng.drawGraph();
         } catch (IOException ex) {

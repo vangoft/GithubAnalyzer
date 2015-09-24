@@ -18,17 +18,19 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javafx.scene.Group;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.ImageViewBuilder;
 import javafx.scene.input.ScrollEvent;
-import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.Shape;
+import javafx.scene.text.Text;
 import org.kohsuke.github.GHCommit;
 import org.kohsuke.github.GHRepository;
 
@@ -40,7 +42,9 @@ public class NetworkGraph {
     
     private final List<NGCommit> ngcommits = new ArrayList();
     private final HashMap<String, NGCommit> hs = new HashMap();
-    private final AnchorPane contentPane;
+    private final Pane contentPane;
+    private final ScrollPane contentScrollPane;
+    private final Pane labelPane;
     
     private final List<Line> lines = new ArrayList<>();
     private final List<Shape> nodes = new ArrayList<>();
@@ -55,13 +59,18 @@ public class NetworkGraph {
     private final HashMap<String, List<NGCommit>> multiActive = new HashMap<>();
     private final HashMap<String, List<NGCommit>> multiInactive = new HashMap<>();
     
-    private boolean compact = true;
+    private final HashMap<String, String> txtLabels = new HashMap<>();
+    private final ArrayList<Integer> labelOrderSpacing = new ArrayList();
     
-    public NetworkGraph(List<GHCommit> commits, List<GHRepository> forks, AnchorPane cp)
+    private boolean compact = false;
+    
+    public NetworkGraph(List<GHCommit> commits, List<GHRepository> forks, Pane cp, Pane lp, ScrollPane csp)
     {
         processCommits(commits, forks);
         setColors();
         contentPane = cp;
+        labelPane = lp;
+        contentScrollPane = csp;
     }
     
     private void processCommits(List<GHCommit> commits, List<GHRepository> forks){
@@ -78,13 +87,14 @@ public class NetworkGraph {
         
         
         //put fork data in hashmap
-        for(GHRepository fork: forks)
+        for(GHRepository fork: forks)   
             for(GHCommit com : fork.listCommits().asList())
                 if(!hm.containsKey(com.getSHA1()))
                 {
                     hm.put(com.getSHA1(), new NGCommit(com));
                     commits.add(com);
                 }
+
         
         //add missing parent/child information
         //reverse list so that earlier date children come first
@@ -105,20 +115,24 @@ public class NetworkGraph {
                 return o2.getDate().compareTo(o1.getDate());
             }
         });
-        
-//        for(NGCommit com: ngcommits)
-//            System.out.println(com.getDate() + " " + com.getOwner() + " " + com.getSHA1());
-//        
+               
         //prepare procesSpaces-order (first master then forks)
         for(NGCommit com : ngcommits)
             if(!procOrder.contains(com.getOwner()))
                 procOrder.add(com.getOwner());
         
-        
+        processLabels(ngcommits);
         processExpandedSpaces(ngcommits, procOrder);
     }
     
-    public void processExpandedSpaces(List<NGCommit> commits, List<String> procOrder)
+    private void processLabels(List<NGCommit> commits)            
+    {
+        for(NGCommit com : commits)
+            if(!txtLabels.containsKey(com.getOwner()))
+                txtLabels.put(com.getOwner(), com.getSHA1());                
+    }
+    
+    private void processExpandedSpaces(List<NGCommit> commits, List<String> procOrder)
     {
         //put all commits with new format in hashmap
         for(NGCommit com : commits)
@@ -131,10 +145,10 @@ public class NetworkGraph {
         
         //init maxSpacing, all false besides 1st
         for(int i = 0; i < numSpaces; i++)
-            spaces.put(i,false); 
-                
+            spaces.put(i,false);  
+        
         for(String owner : procOrder)
-        {            
+        {
             //init spacing, first commit in current branch set to "0"
             for(int i = 0; i < ngcommits.size(); i++)
             {
@@ -220,8 +234,11 @@ public class NetworkGraph {
                 }
                 //update maxSpace for forks
                 if(i == ngcommits.size() - 1)
+                {
                     maxSpace = tempMaxSpace + 1;
+                }
             }
+            labelOrderSpacing.add(maxSpace);
         }
         
         processCompactSpaces(ngcommits, procOrder);
@@ -233,7 +250,7 @@ public class NetworkGraph {
         }
     }
     
-    public void processCompactSpaces(List<NGCommit> commits, List<String> order)
+    private void processCompactSpaces(List<NGCommit> commits, List<String> order)
     {
         //space map
         List<Integer> spacing = new ArrayList();
@@ -353,15 +370,15 @@ public class NetworkGraph {
     public void drawGraph() throws IOException
     {       
         double stepSize = 30;
-        double yOffset =  50;
-        double xOffset = 50;
+        double yOffset =  30;
+        double xOffset = 30; //compact ? 50 : 150;
                         
         //clear nodes and lines
         nodes.clear();
         lines.clear();
         outlines.clear();
         
-        
+        //create all nodes
         for(int i = ngcommits.size() - 1; i >= 0; i--)
         {            
             if(!multiActive.containsKey(ngcommits.get(i).getSHA1()) && !compact)
@@ -378,25 +395,40 @@ public class NetworkGraph {
             }                    
         }
         
+        //create all lines
         for(int i = 0; i < ngcommits.size(); i++)
             createLine(ngcommits.get(i));
         
+        //create outlines for multicommits
         createAllOutlines();
         
         //erase contentPane content
          if(contentPane.getChildren() != null)
             contentPane.getChildren().removeAll(contentPane.getChildren());
+         
+        //erase contentPane content
+         if(labelPane.getChildren() != null)
+            labelPane.getChildren().removeAll(labelPane.getChildren());
 
-        //add to contentpane
+        //group elements for contentpane
         Group content = new Group();
         content.getChildren().addAll(lines);
         content.getChildren().addAll(nodes);
         content.getChildren().addAll(outlines);
+        content.getChildren().add(createTextLabels());
         
-       // content.getChildren().add(createMultiOutline(1,5,yOffset * (ngcommits.get(i).getCompactSpace() + 1) * 0.75));
-
-        contentPane.getChildren().add(content);      
+        //regroup for background width
+        Group contentA = new Group();
+        if(!compact)
+            contentA.getChildren().add(createForkBackground(contentPane));
+        contentA.getChildren().addAll(content.getChildren());
         
+        //add content to panes
+        if(!compact)
+            labelPane.getChildren().add(createSideLabels(labelPane));
+        contentPane.getChildren().add(contentA);      
+        
+        //add zoom to elements in contentpane
         contentPane.setOnScroll(
             (ScrollEvent event) -> {
                 double zoomFactor = 1.05;
@@ -404,12 +436,10 @@ public class NetworkGraph {
                 if (deltaY < 0){
                     zoomFactor = 2.0 - zoomFactor;
                 }
-                //System.out.println(zoomFactor);
                 content.setScaleX(content.getScaleX() * zoomFactor);
                 content.setScaleY(content.getScaleY() * zoomFactor);
                 event.consume();
         });
-        
     }
     
     /* put all multicommits in map for expansion/compression */
@@ -438,8 +468,10 @@ public class NetworkGraph {
         }
     }
     
+    /* toggles all multi commits if available */
     public void toggleAllMulti()
     {
+        //open if compressed multicommits are available
         if(!multiActive.isEmpty())
         {
             List<List<NGCommit>> active = new ArrayList<>();
@@ -461,13 +493,9 @@ public class NetworkGraph {
             }
             
             multiActive.clear();
-            
-            try {
-                drawGraph();
-            } catch (IOException ex) {
-                Logger.getLogger(NetworkGraph.class.getName()).log(Level.SEVERE, null, ex);
-            }
         }
+        
+        //close if uncompressed multicommits are available
         else if(!multiInactive.isEmpty())
         {
             List<List<NGCommit>> inactive = new ArrayList<>();
@@ -487,12 +515,12 @@ public class NetworkGraph {
             }
             
             multiInactive.clear();
-            
-            try {
-                drawGraph();
-            } catch (IOException ex) {
-                Logger.getLogger(NetworkGraph.class.getName()).log(Level.SEVERE, null, ex);
-            }
+        }
+        //redraw graph
+        try {
+            drawGraph();
+        } catch (IOException ex) {
+            Logger.getLogger(NetworkGraph.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
     
@@ -613,7 +641,6 @@ public class NetworkGraph {
         
         //click event for expansion/compression
         node.setOnMouseClicked(e -> {
-            System.out.println(node.getId());
             toggleSingleMulti(node.getId());
             e.consume();
         });
@@ -625,7 +652,7 @@ public class NetworkGraph {
     }
     
     private Rectangle createOutline(double x1, double x2, int space){
-        int yOffset = 50;
+        int yOffset = 30;
                 
         Rectangle rec = new Rectangle();
         rec.setX(x1 - 6);
@@ -642,11 +669,10 @@ public class NetworkGraph {
     
     private void createAllOutlines()
     {
-        List<List<NGCommit>> inactive = new ArrayList<>();
-        List<NGCommit> multi;
-            
+        List<NGCommit> multi;            
         Iterator it = multiInactive.entrySet().iterator();
         HashSet<String> sha1 = new HashSet();
+        
         while (it.hasNext()) 
         {
             Map.Entry pair = (Map.Entry)it.next();
@@ -690,7 +716,6 @@ public class NetworkGraph {
         rec.setId(ngcommits.get(start).getSHA1());
         
         rec.setOnMouseClicked(e -> {
-            System.out.println(rec.getId());
             toggleSingleMulti(rec.getId());
             e.consume();
         });
@@ -861,5 +886,113 @@ public class NetworkGraph {
                     lines.add(line3);
             }
     }
+
+    private Group createTextLabels()
+    {
+        Group grp = new Group(); 
+        String owner = "";   
+        String sha1 = "";
+        Iterator it = txtLabels.entrySet().iterator(); 
         
+        while (it.hasNext()) 
+        {
+            Map.Entry pair = (Map.Entry)it.next();
+            owner = (String) pair.getKey();
+            sha1 = (String) pair.getValue();
+            
+            double x  = posX.get(sha1);
+            double y = posY.get(sha1);
+            
+            String[] parts = owner.split("/");            
+            Text txt = new Text("\u25CF " + parts[0]);
+            //txt.setRotate(90);
+            //txt.setScaleX(1);
+            //txt.setStroke(Color.BLACK);
+            txt.setFill(getColor(hs.get(sha1)));
+            txt.setX(x + 10);
+            txt.setY(y + 3);
+            
+            grp.getChildren().add(txt);            
+        }
+        
+        return grp;
+    }    
+    
+    public Group createSideLabels(Pane pane)
+    {
+        Group grpTxt = new Group();
+        Group recs = new Group();
+        String owner = "";   
+        String sha1 = "";
+        
+        Iterator it = txtLabels.entrySet().iterator();        
+        while (it.hasNext()) 
+        {
+            Map.Entry pair = (Map.Entry)it.next();
+            owner = (String) pair.getKey();
+            sha1 = (String) pair.getValue();
+            
+            double x  = posX.get(sha1);
+            double y = posY.get(sha1);
+            
+            //text label
+            String[] parts = owner.split("/");            
+            Text txt = new Text("\u25CF " + parts[0]);
+            txt.setFill(getColor(hs.get(sha1)));
+            txt.setX(5);
+            txt.setY(y + 3);
+            
+            grpTxt.getChildren().add(txt);
+        }
+        
+        int yOffset = 30;
+        double startY = 1;
+
+        boolean test = false;
+        
+        for(int i = 0; i < labelOrderSpacing.size(); i++)
+        {
+            Rectangle rec = new Rectangle();
+            rec.setX(1);
+            rec.setY(startY);
+            rec.widthProperty().bind(pane.prefWidthProperty());
+            rec.setHeight((yOffset * (labelOrderSpacing.get(i) + 1) * 0.75) - 12 - startY);
+            rec.setFill(test ? null : Color.gray(.90));
+            rec.setStroke(test ? null : Color.gray(.90));
+
+            test = !test;
+            startY = (yOffset * (labelOrderSpacing.get(i) + 1) * 0.75) - 12;
+
+            recs.getChildren().add(rec);
+        }
+        recs.getChildren().addAll(grpTxt.getChildren());
+        return recs;
+    }
+    
+    private Group createForkBackground(Pane pane)
+    {
+        int yOffset = 30;
+        double startY = 1;
+
+        boolean test = false;
+        Group recs = new Group();
+        for(int i = 0; i < labelOrderSpacing.size(); i++)
+        {            
+            Rectangle rec = new Rectangle();
+            rec.setX(1);
+            rec.setY(startY);
+            //rec.setWidth(pane.getParent().getBoundsInLocal().getMaxX());
+            rec.widthProperty().bind(pane.widthProperty());
+            rec.setHeight((yOffset * (labelOrderSpacing.get(i) + 1) * 0.75) - 12 - startY);
+            rec.setFill(test ? Color.gray(.95) : Color.gray(.90));
+            rec.setStroke(test ? Color.gray(.95) : Color.gray(.90));
+
+            test = !test;
+            startY = (yOffset * (labelOrderSpacing.get(i) + 1) * 0.75) - 12;
+
+            recs.getChildren().add(rec);
+        }
+        
+        return recs;
+    }
 }
