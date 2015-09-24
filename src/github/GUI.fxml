@@ -57,9 +57,9 @@
         </ScrollPane>
       </left>
       <top>
-        <ScrollPane prefHeight="50.0" prefWidth="355.0">
+        <ScrollPane fx:id="dateScrollPane" hbarPolicy="NEVER" prefHeight="50.0" prefWidth="355.0" vbarPolicy="NEVER">
           <content>
-            <AnchorPane id="Content" minHeight="-1.0" minWidth="-1.0" prefHeight="-1.0" prefWidth="-1.0" />
+            <AnchorPane id="Content" fx:id="datePane" minHeight="-1.0" minWidth="-1.0" prefHeight="-1.0" prefWidth="-1.0" />
           </content>
           <BorderPane.margin>
             <Insets bottom="1.0" left="103.0" />
@@ -67,5 +67,7 @@
         </ScrollPane>
       </top>
     </BorderPane>
+    <Text layoutX="215.0" layoutY="46.0" strokeType="OUTSIDE" strokeWidth="0.0" text="owners" />
+    <Text layoutX="265.0" layoutY="32.0" rotate="270.0" strokeType="OUTSIDE" strokeWidth="0.0" text="date" />
   </children>
 </AnchorPane>

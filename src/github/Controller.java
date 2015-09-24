@@ -58,12 +58,15 @@ public class Controller implements Initializable {
     private AnchorPane contentPane;
     @FXML
     private AnchorPane labelPane;
+    @FXML
+    private AnchorPane datePane;
     
     @FXML
-    private ScrollPane labelScrollPane;
+    private ScrollPane labelScrollPane;    
     @FXML
-    private ScrollPane contentScrollPane;
-    
+    private ScrollPane dateScrollPane;
+    @FXML
+    private ScrollPane contentScrollPane;    
     
     /* filechooser stuff */
     final FileChooser fileChooser = new FileChooser();
@@ -94,16 +97,6 @@ public class Controller implements Initializable {
             //fileSaver.setCommits(repo.listCommits().asList());
             //List<GHRepository> forks = repo.listForks().asList();
             //List<GHCommit> commits = repo.listCommits().asList();
-            
-            
-            DoubleProperty vPosition = new SimpleDoubleProperty();
-                vPosition.bind(contentScrollPane.vvalueProperty());
-                vPosition.addListener(new ChangeListener() {
-                    @Override
-                    public void changed(ObservableValue arg0, Object arg1, Object arg2) {
-                    labelScrollPane.setVvalue((double) arg2);
-                    }
-             }); 
             
             loadNetworkGraph();                        
 
@@ -189,15 +182,7 @@ public class Controller implements Initializable {
     
     private void loadNetworkGraph()
     {
-//        //erase contentPane content
-//        if(contentPane.getChildren() != null)
-//            contentPane.getChildren().removeAll(contentPane.getChildren());
-//        
-//        //erase labelPane content
-//        if(labelPane.getChildren() != null)
-//            labelPane.getChildren().removeAll(labelPane.getChildren());
-            
-        ng = new NetworkGraph(fileSaver.getCommits(), fileSaver.getForks(), contentPane, labelPane, contentScrollPane);
+        ng = new NetworkGraph(fileSaver.getCommits(), fileSaver.getForks(), contentPane, labelPane, datePane, contentScrollPane, labelScrollPane, dateScrollPane);
         try {
             ng.drawGraph();
         } catch (IOException ex) {

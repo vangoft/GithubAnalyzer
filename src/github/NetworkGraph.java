@@ -8,8 +8,10 @@ package github;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -17,6 +19,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.scene.Group;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tooltip;
@@ -43,8 +49,12 @@ public class NetworkGraph {
     private final List<NGCommit> ngcommits = new ArrayList();
     private final HashMap<String, NGCommit> hs = new HashMap();
     private final Pane contentPane;
-    private final ScrollPane contentScrollPane;
     private final Pane labelPane;
+    private final Pane datePane;
+    
+    private final ScrollPane contentScrollPane;
+    private final ScrollPane labelScrollPane;
+    private final ScrollPane dateScrollPane;
     
     private final List<Line> lines = new ArrayList<>();
     private final List<Shape> nodes = new ArrayList<>();
@@ -64,13 +74,16 @@ public class NetworkGraph {
     
     private boolean compact = false;
     
-    public NetworkGraph(List<GHCommit> commits, List<GHRepository> forks, Pane cp, Pane lp, ScrollPane csp)
+    public NetworkGraph(List<GHCommit> commits, List<GHRepository> forks, Pane cp, Pane lp, Pane dp, ScrollPane csp, ScrollPane lsp, ScrollPane dsp)
     {
         processCommits(commits, forks);
         setColors();
         contentPane = cp;
         labelPane = lp;
+        datePane = dp;
         contentScrollPane = csp;
+        labelScrollPane = lsp;
+        dateScrollPane = dsp;
     }
     
     private void processCommits(List<GHCommit> commits, List<GHRepository> forks){
@@ -410,6 +423,10 @@ public class NetworkGraph {
         //erase contentPane content
          if(labelPane.getChildren() != null)
             labelPane.getChildren().removeAll(labelPane.getChildren());
+         
+        //erase contentPane content
+         if(datePane.getChildren() != null)
+            datePane.getChildren().removeAll(datePane.getChildren());
 
         //group elements for contentpane
         Group content = new Group();
@@ -417,6 +434,8 @@ public class NetworkGraph {
         content.getChildren().addAll(nodes);
         content.getChildren().addAll(outlines);
         content.getChildren().add(createTextLabels());
+        contentPane.getChildren().add(content);
+
         
         //regroup for background width
         Group contentA = new Group();
@@ -424,10 +443,35 @@ public class NetworkGraph {
             contentA.getChildren().add(createForkBackground(contentPane));
         contentA.getChildren().addAll(content.getChildren());
         
+        //erase contentPane again
+         if(contentPane.getChildren() != null)
+            contentPane.getChildren().removeAll(contentPane.getChildren());
+        
         //add content to panes
+        contentPane.getChildren().add(contentA);
+        datePane.getChildren().add(createDateLine(contentPane));        
         if(!compact)
             labelPane.getChildren().add(createSideLabels(labelPane));
-        contentPane.getChildren().add(contentA);      
+        
+        //bind label pane v scroll pos to content pane v scroll pos
+        DoubleProperty vPosition = new SimpleDoubleProperty();
+            vPosition.bind(contentScrollPane.vvalueProperty());
+            vPosition.addListener(new ChangeListener() {
+                @Override
+                public void changed(ObservableValue arg0, Object arg1, Object arg2) {
+                labelScrollPane.setVvalue((double) arg2);
+                }
+         }); 
+
+        //bind date pane h scroll pos to content pane h scroll pos               
+        DoubleProperty hPosition = new SimpleDoubleProperty();
+            hPosition.bind(contentScrollPane.hvalueProperty());
+            hPosition.addListener(new ChangeListener() {
+                @Override
+                public void changed(ObservableValue arg0, Object arg1, Object arg2) {
+                dateScrollPane.setHvalue((double) arg2);
+                }
+         }); 
         
         //add zoom to elements in contentpane
         contentPane.setOnScroll(
@@ -868,12 +912,11 @@ public class NetworkGraph {
     private Group createTextLabels()
     {
         Group grp = new Group(); 
-        String owner = "";   
-        String sha1 = "";
-        Iterator it = txtLabels.entrySet().iterator(); 
-        Double offset = 10.0;
-
+        String owner;   
+        String sha1;
+        Double offset;
         
+        Iterator it = txtLabels.entrySet().iterator(); 
         while (it.hasNext()) 
         {
             Map.Entry pair = (Map.Entry)it.next();
@@ -885,16 +928,15 @@ public class NetworkGraph {
             
             String[] parts = owner.split("/");            
             Text txt = new Text("\u25CF " + parts[0]);
-            txt.setFill(getColor(hs.get(sha1)));
+            txt.setFill(getColor(hs.get(sha1)));            
             offset = hs.get(sha1).getMulti() ? 40.0 : 10.0;
-            offset = multiInactive.containsKey(sha1) ? 10.0 : 40.0;
+            offset = multiInactive.containsKey(sha1) ? 10.0 : offset;       
             
-            txt.setX(hs.get(sha1).getMulti() ? (x + offset) : (x + 10));
+            txt.setX(x + offset);
             txt.setY(y + 3);
             
             grp.getChildren().add(txt);            
-        }
-        
+        }        
         return grp;
     }    
     
@@ -959,10 +1001,10 @@ public class NetworkGraph {
         for(int i = 0; i < labelOrderSpacing.size(); i++)
         {            
             Rectangle rec = new Rectangle();
-            rec.setX(1);
+            rec.setX(0);
             rec.setY(startY);
-            //rec.setWidth(pane.getParent().getBoundsInLocal().getMaxX());
-            rec.widthProperty().bind(pane.widthProperty());
+            rec.setWidth(pane.getBoundsInLocal().getMaxX());
+            //rec.widthProperty().bind(pane.widthProperty());
             rec.setHeight((yOffset * (labelOrderSpacing.get(i) + 1) * 0.75) - 12 - startY);
             rec.setFill(test ? Color.gray(.95) : Color.gray(.90));
             rec.setStroke(test ? Color.gray(.95) : Color.gray(.90));
@@ -974,5 +1016,188 @@ public class NetworkGraph {
         }
         
         return recs;
+    }
+    
+    private Group createDateLine(Pane pane)
+    {
+        Group dateLine = new Group(); 
+        
+        //initialize width for correct scroll sync
+        Rectangle rec = new Rectangle(0,0,pane.getBoundsInLocal().getMaxX(), 12);
+        rec.setFill(Color.gray(.90));
+        rec.setStroke(Color.gray(.90));
+        dateLine.getChildren().add(rec);      
+       
+        rec = new Rectangle(0,13,pane.getBoundsInLocal().getMaxX(), 15);
+        rec.setFill(Color.gray(1));
+        rec.setStroke(Color.gray(1));
+        dateLine.getChildren().add(rec);     
+        
+        rec = new Rectangle(0,30,pane.getBoundsInLocal().getMaxX(), 15);
+        rec.setFill(Color.gray(.90));
+        rec.setStroke(Color.gray(.90));
+        dateLine.getChildren().add(rec); 
+        
+        Date currDate;
+        Date prevDate = new Date();
+        prevDate.setYear(0);
+        prevDate.setMonth(0);
+        prevDate.setDate(1);
+        
+        Text year, month, day;
+        
+        ArrayList<String> months = new ArrayList<>();
+        months.addAll(Arrays.asList("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"));
+
+        //create all nodes
+        for(int i = ngcommits.size() - 1; i >= 0; i--)
+        {            
+            if(!multiActive.containsKey(ngcommits.get(i).getSHA1()))
+            {
+                currDate = ngcommits.get(i).getDate();
+                if(currDate.getYear() > prevDate.getYear())
+                {
+                    year = new Text(Integer.toString(currDate.getYear() + 1900));
+                    year.setX(posX.get(ngcommits.get(i).getSHA1()));
+                    year.setY(10);    
+                    
+                    month = new Text(months.get(currDate.getMonth()));
+                    month.setX(posX.get(ngcommits.get(i).getSHA1()));
+                    month.setY(25);         
+                    
+                    day = new Text(Integer.toString(currDate.getDate()));
+                    day.setX(posX.get(ngcommits.get(i).getSHA1()));
+                    day.setY(40);  
+                    
+                    Line line = new Line(posX.get(ngcommits.get(i).getSHA1()), 
+                        45,
+                        posX.get(ngcommits.get(i).getSHA1()),
+                        47);
+                    
+                    dateLine.getChildren().addAll(day, month, year, line);
+                    
+                    prevDate = currDate;
+                }else
+                    //year = null;
+                if(currDate.getMonth() > prevDate.getMonth())
+                {
+                    month = new Text(months.get(currDate.getMonth()));
+                    month.setX(posX.get(ngcommits.get(i).getSHA1()));
+                    month.setY(25);         
+                                        
+                    day = new Text(Integer.toString(currDate.getDate()));
+                    day.setX(posX.get(ngcommits.get(i).getSHA1()));
+                    day.setY(40);
+                    
+                    Line line = new Line(posX.get(ngcommits.get(i).getSHA1()), 
+                        45,
+                        posX.get(ngcommits.get(i).getSHA1()),
+                        47);
+                    
+                    dateLine.getChildren().addAll(day, month, line);
+                    
+                    prevDate = currDate;
+                }else
+                    //month = null;
+                if(currDate.getDate() > prevDate.getDate())
+                {
+                    day = new Text(Integer.toString(currDate.getDate()));
+                    day.setX(posX.get(ngcommits.get(i).getSHA1()));
+                    day.setY(40); 
+                    
+                    Line line = new Line(posX.get(ngcommits.get(i).getSHA1()), 
+                        45,
+                        posX.get(ngcommits.get(i).getSHA1()),
+                        47);
+                    
+                    dateLine.getChildren().addAll(day, line);
+                    
+                    prevDate = currDate;
+                }else
+                    //day = null;                
+                
+                prevDate = currDate;
+            }            
+            else
+            {
+                int multiSize = i - multiActive.get(ngcommits.get(i).getSHA1()).size() + 1;                
+                List<NGCommit> tmp = multiActive.get(ngcommits.get(i).getSHA1());
+                
+                List<NGCommit> multi = new ArrayList<>();
+                multi.add(tmp.get(0));
+                multi.add(tmp.get(tmp.size() - 1));
+                
+                for(int j = 0; j < multi.size(); j++)
+                {
+                    currDate = multi.get(j).getDate();
+                    if(currDate.getYear() > prevDate.getYear())
+                    {
+                        year = new Text(Integer.toString(currDate.getYear() + 1900));
+                        year.setX(posX.get(multi.get(j).getSHA1()) + (j * 30));
+                        year.setY(10);    
+
+                        month = new Text(months.get(currDate.getMonth()));
+                        month.setX(posX.get(multi.get(j).getSHA1()) + (j * 30));
+                        month.setY(25);         
+
+                        day = new Text(Integer.toString(currDate.getDate()));
+                        day.setX(posX.get(multi.get(j).getSHA1()) + (j * 30));
+                        day.setY(40);  
+
+                        Line line = new Line(posX.get(multi.get(j).getSHA1()) + (j * 30), 
+                            45,
+                            posX.get(multi.get(j).getSHA1())+ (j * 30),
+                            47);
+
+                        dateLine.getChildren().addAll(day, month, year, line);
+
+                        prevDate = currDate;
+                    }else
+                        //year = null;
+                    if(currDate.getMonth() > prevDate.getMonth())
+                    {
+                        month = new Text(months.get(currDate.getMonth()));
+                        month.setX(posX.get(multi.get(j).getSHA1()) + (j * 30));
+                        month.setY(25);         
+
+                        day = new Text(Integer.toString(currDate.getDate()));
+                        day.setX(posX.get(multi.get(j).getSHA1()) + (j * 30));
+                        day.setY(40);
+
+                        Line line = new Line(posX.get(multi.get(j).getSHA1()) + (j * 30), 
+                            45,
+                            posX.get(multi.get(j).getSHA1()) + (j * 30),
+                            47);
+
+                        dateLine.getChildren().addAll(day, month, line);
+
+                        prevDate = currDate;
+                    }else
+                        //month = null;
+                    if(currDate.getDate() > prevDate.getDate())
+                    {
+                        day = new Text(Integer.toString(currDate.getDate()));
+                        day.setX(posX.get(multi.get(j).getSHA1()) + (j * 30));
+                        day.setY(40); 
+
+                        Line line = new Line(posX.get(multi.get(j).getSHA1()) + (j * 30), 
+                            45,
+                            posX.get(multi.get(j).getSHA1()) + (j * 30),
+                            47);
+
+                        dateLine.getChildren().addAll(day, line);
+
+                        prevDate = currDate;
+                    }else
+                        //day = null;                
+
+                    prevDate = currDate;
+                }
+                
+                i = multiSize;
+            }                    
+        } 
+        
+        return dateLine;
     }
 }
