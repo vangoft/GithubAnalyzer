@@ -75,6 +75,8 @@ public class NetworkGraph {
     
     private boolean compact = false;
     
+    private double zoomFactor = 1.00;
+    
     public NetworkGraph(List<GHCommit> commits, List<GHRepository> forks, Pane cp, Pane lp, Pane dp, ScrollPane csp, ScrollPane lsp, ScrollPane dsp)
     {
         processCommits(commits, forks);
@@ -418,16 +420,14 @@ public class NetworkGraph {
         createAllOutlines();
         
         //erase contentPane content
-         if(contentPane.getChildren() != null)
-            contentPane.getChildren().removeAll(contentPane.getChildren());
+        contentPane.getChildren().clear();
+        contentPane.resize(0, 0);
          
-        //erase contentPane content
-         if(labelPane.getChildren() != null)
-            labelPane.getChildren().removeAll(labelPane.getChildren());
+        //erase labelPane content
+        labelPane.getChildren().clear();
          
-        //erase contentPane content
-         if(datePane.getChildren() != null)
-            datePane.getChildren().removeAll(datePane.getChildren());
+        //erase date content
+        datePane.getChildren().clear();
 
         //group elements for contentpane
         Group content = new Group();
@@ -436,20 +436,23 @@ public class NetworkGraph {
         content.getChildren().addAll(outlines);
         content.getChildren().add(createTextLabels());
         contentPane.getChildren().add(content);
-
         
         //regroup for background width
-        Group contentA = new Group();
+        Group bg = new Group();
+        
         if(!compact)
-            contentA.getChildren().add(createForkBackground(contentPane));
-        contentA.getChildren().addAll(content.getChildren());
+            bg.getChildren().add(createForkBackground(contentPane));
+        bg.getChildren().addAll(content.getChildren());
         
         //erase contentPane again
-         if(contentPane.getChildren() != null)
-            contentPane.getChildren().removeAll(contentPane.getChildren());
+        contentPane.getChildren().clear();
+        
+        zoomFactor = 1;
+        contentPane.setScaleX(content.getScaleX() * zoomFactor);
+        contentPane.setScaleY(content.getScaleY() * zoomFactor);
         
         //add content to panes
-        contentPane.getChildren().add(contentA);
+        contentPane.getChildren().add(bg);
         datePane.getChildren().add(createDateLine(contentPane));        
         if(!compact)
             labelPane.getChildren().add(createSideLabels(labelPane));
@@ -460,7 +463,7 @@ public class NetworkGraph {
             vPosition.addListener(new ChangeListener() {
                 @Override
                 public void changed(ObservableValue arg0, Object arg1, Object arg2) {
-                labelScrollPane.setVvalue((double) arg2);
+                    labelScrollPane.setVvalue((double) arg2);
                 }
          }); 
 
@@ -470,20 +473,22 @@ public class NetworkGraph {
             hPosition.addListener(new ChangeListener() {
                 @Override
                 public void changed(ObservableValue arg0, Object arg1, Object arg2) {
-                dateScrollPane.setHvalue((double) arg2);
+                    dateScrollPane.setHvalue((double) arg2);
                 }
          }); 
         
         //add zoom to elements in contentpane
         contentPane.setOnScroll(
             (ScrollEvent event) -> {
-                double zoomFactor = 1.05;
+                //zoomFactor = 1.05;
                 double deltaY = event.getDeltaY();
-                if (deltaY < 0){
-                    zoomFactor = 2.0 - zoomFactor;
-                }
-                content.setScaleX(content.getScaleX() * zoomFactor);
-                content.setScaleY(content.getScaleY() * zoomFactor);
+                if (deltaY < 0)
+                    zoomFactor -= 0.05;                
+                else
+                    zoomFactor += 0.05;
+
+                contentPane.setScaleX(content.getScaleX() * zoomFactor);
+                contentPane.setScaleY(content.getScaleY() * zoomFactor);
                 event.consume();
         });
     }
@@ -779,8 +784,8 @@ public class NetworkGraph {
         Text cnt = new Text(Integer.toString(start - end + 1));
         cnt.setWrappingWidth(40);
         cnt.setTextAlignment(TextAlignment.CENTER);
-        cnt.setFill(Color.WHITE);
-        cnt.setStroke(Color.WHITE);
+        //cnt.setFill(Color.WHITE);
+        cnt.setStroke((getColor(ngcommits.get(start)) == Color.BLACK) ? Color.WHITE : Color.GRAY);
         cnt.setX(rec.getX());
         cnt.setY(rec.getY() + 9);
         
@@ -827,22 +832,36 @@ public class NetworkGraph {
     }
         
     private void setColors(){
-        colors.add(Color.BLACK);
-        colors.add(Color.CORNFLOWERBLUE);
-        colors.add(Color.ORANGE);
-        colors.add(Color.LIGHTSEAGREEN);       
-        colors.add(Color.MEDIUMORCHID);
-        colors.add(Color.PLUM);
-        colors.add(Color.SALMON);
-        colors.add(Color.SLATEBLUE);
+        colors.add(Color.web("8DD3C7"));
+        colors.add(Color.web("FFFFB3"));
+        colors.add(Color.web("BEBADA"));     
+        colors.add(Color.web("FB8072"));
+        colors.add(Color.web("80B1D3"));
+        colors.add(Color.web("FDB462"));  
+        colors.add(Color.web("B3DE69"));
+        colors.add(Color.web("FCCDE5"));
+        colors.add(Color.web("D9D9D9"));  
+        colors.add(Color.web("BC80BD"));
+        colors.add(Color.web("CCEBC5"));
+        colors.add(Color.web("FFED6F"));  
     }
     
     private Color getColor(NGCommit ng)
     {
-        if(compact)            
-            return colors.get(ng.getCompactSpace() % 8);
+        if(compact)
+        {
+            if(ng.getCompactSpace() == 0)
+                return Color.BLACK;
+            else
+                return colors.get(ng.getCompactSpace() % 12);
+        }
         else
-            return colors.get(ng.getExpandedSpace() % 8);
+        {
+            if(ng.getExpandedSpace() == 0)
+                return Color.BLACK;
+            else
+                return colors.get(ng.getExpandedSpace() % 12);
+        }
     }
            
     private void createLine(NGCommit commit) throws IOException
