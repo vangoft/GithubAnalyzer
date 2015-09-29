@@ -37,6 +37,7 @@ import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.Shape;
 import javafx.scene.text.Text;
+import javafx.scene.text.TextAlignment;
 import org.kohsuke.github.GHCommit;
 import org.kohsuke.github.GHRepository;
 
@@ -57,7 +58,7 @@ public class NetworkGraph {
     private final ScrollPane dateScrollPane;
     
     private final List<Line> lines = new ArrayList<>();
-    private final List<Shape> nodes = new ArrayList<>();
+    private final List<Group> nodes = new ArrayList<>();
     private final List<Rectangle> outlines = new ArrayList<>();
     
     private final HashMap<String, Double> posX = new HashMap<>();
@@ -665,8 +666,9 @@ public class NetworkGraph {
         }     
     }
     
-    private Circle createSingleNode(int i, double pos, double xOffset, double yOffset, double stepSize){
-             
+    private Group createSingleNode(int i, double pos, double xOffset, double yOffset, double stepSize){
+        
+        Group group = new Group();
         Circle node = new Circle(pos * stepSize + xOffset,
                     yOffset,
                     5,
@@ -693,7 +695,9 @@ public class NetworkGraph {
         posX.put(ngcommits.get(i).getSHA1(), node.getCenterX());
         posY.put(ngcommits.get(i).getSHA1(), node.getCenterY());
    
-        return node;
+        group.getChildren().add(node);
+        
+        return group;
     }
     
     private Rectangle createOutline(double x1, double x2, int space){
@@ -736,8 +740,10 @@ public class NetworkGraph {
         }
     }
     
-    private Rectangle createMultiNode(double pos, int start, int end, double xOffset, double yOffset, double stepSize)
+    private Group createMultiNode(double pos, int start, int end, double xOffset, double yOffset, double stepSize)
     {      
+        Group multi = new Group();
+        
         Rectangle rec = new Rectangle(pos * stepSize + xOffset - 5,
                     yOffset - 5,
                     40,10);
@@ -770,7 +776,22 @@ public class NetworkGraph {
         
         Tooltip.install(rec, tt);
         
-        return rec;
+        Text cnt = new Text(Integer.toString(start - end + 1));
+        cnt.setWrappingWidth(40);
+        cnt.setTextAlignment(TextAlignment.CENTER);
+        cnt.setFill(Color.WHITE);
+        cnt.setStroke(Color.WHITE);
+        cnt.setX(rec.getX());
+        cnt.setY(rec.getY() + 9);
+        
+        cnt.setOnMouseClicked(e -> {
+            toggleSingleMulti(rec.getId());
+            e.consume();
+        });
+        
+        multi.getChildren().addAll(rec, cnt);
+        
+        return multi;
     }
     
     private void getAvatar(Tooltip tt, NGCommit commit)
@@ -1046,9 +1067,6 @@ public class NetworkGraph {
         
         Text year, month, day;
         
-        ArrayList<String> months = new ArrayList<>();
-        months.addAll(Arrays.asList("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"));
-
         //create all nodes
         for(int i = ngcommits.size() - 1; i >= 0; i--)
         {            
@@ -1056,65 +1074,13 @@ public class NetworkGraph {
             {
                 currDate = ngcommits.get(i).getDate();
                 if(currDate.getYear() > prevDate.getYear())
-                {
-                    year = new Text(Integer.toString(currDate.getYear() + 1900));
-                    year.setX(posX.get(ngcommits.get(i).getSHA1()));
-                    year.setY(10);    
-                    
-                    month = new Text(months.get(currDate.getMonth()));
-                    month.setX(posX.get(ngcommits.get(i).getSHA1()));
-                    month.setY(25);         
-                    
-                    day = new Text(Integer.toString(currDate.getDate()));
-                    day.setX(posX.get(ngcommits.get(i).getSHA1()));
-                    day.setY(40);  
-                    
-                    Line line = new Line(posX.get(ngcommits.get(i).getSHA1()), 
-                        45,
-                        posX.get(ngcommits.get(i).getSHA1()),
-                        47);
-                    
-                    dateLine.getChildren().addAll(day, month, year, line);
-                    
-                    prevDate = currDate;
-                }else
-                    //year = null;
+                    dateLine.getChildren().add(drawDate(currDate, ngcommits.get(i), true, true, true, false, 0));  
+
                 if(currDate.getMonth() > prevDate.getMonth())
-                {
-                    month = new Text(months.get(currDate.getMonth()));
-                    month.setX(posX.get(ngcommits.get(i).getSHA1()));
-                    month.setY(25);         
-                                        
-                    day = new Text(Integer.toString(currDate.getDate()));
-                    day.setX(posX.get(ngcommits.get(i).getSHA1()));
-                    day.setY(40);
-                    
-                    Line line = new Line(posX.get(ngcommits.get(i).getSHA1()), 
-                        45,
-                        posX.get(ngcommits.get(i).getSHA1()),
-                        47);
-                    
-                    dateLine.getChildren().addAll(day, month, line);
-                    
-                    prevDate = currDate;
-                }else
-                    //month = null;
+                    dateLine.getChildren().add(drawDate(currDate, ngcommits.get(i), false, true, true, false, 0));  
+
                 if(currDate.getDate() > prevDate.getDate())
-                {
-                    day = new Text(Integer.toString(currDate.getDate()));
-                    day.setX(posX.get(ngcommits.get(i).getSHA1()));
-                    day.setY(40); 
-                    
-                    Line line = new Line(posX.get(ngcommits.get(i).getSHA1()), 
-                        45,
-                        posX.get(ngcommits.get(i).getSHA1()),
-                        47);
-                    
-                    dateLine.getChildren().addAll(day, line);
-                    
-                    prevDate = currDate;
-                }else
-                    //day = null;                
+                    dateLine.getChildren().add(drawDate(currDate, ngcommits.get(i), false, false, true, false, 0));
                 
                 prevDate = currDate;
             }            
@@ -1130,74 +1096,66 @@ public class NetworkGraph {
                 for(int j = 0; j < multi.size(); j++)
                 {
                     currDate = multi.get(j).getDate();
+                    
                     if(currDate.getYear() > prevDate.getYear())
-                    {
-                        year = new Text(Integer.toString(currDate.getYear() + 1900));
-                        year.setX(posX.get(multi.get(j).getSHA1()) + (j * 30));
-                        year.setY(10);    
+                        dateLine.getChildren().add(drawDate(currDate, multi.get(j), true, true, true, true, j));  
 
-                        month = new Text(months.get(currDate.getMonth()));
-                        month.setX(posX.get(multi.get(j).getSHA1()) + (j * 30));
-                        month.setY(25);         
-
-                        day = new Text(Integer.toString(currDate.getDate()));
-                        day.setX(posX.get(multi.get(j).getSHA1()) + (j * 30));
-                        day.setY(40);  
-
-                        Line line = new Line(posX.get(multi.get(j).getSHA1()) + (j * 30), 
-                            45,
-                            posX.get(multi.get(j).getSHA1())+ (j * 30),
-                            47);
-
-                        dateLine.getChildren().addAll(day, month, year, line);
-
-                        prevDate = currDate;
-                    }else
-                        //year = null;
                     if(currDate.getMonth() > prevDate.getMonth())
-                    {
-                        month = new Text(months.get(currDate.getMonth()));
-                        month.setX(posX.get(multi.get(j).getSHA1()) + (j * 30));
-                        month.setY(25);         
+                        dateLine.getChildren().add(drawDate(currDate, multi.get(j), false, true, true, true, j));  
 
-                        day = new Text(Integer.toString(currDate.getDate()));
-                        day.setX(posX.get(multi.get(j).getSHA1()) + (j * 30));
-                        day.setY(40);
-
-                        Line line = new Line(posX.get(multi.get(j).getSHA1()) + (j * 30), 
-                            45,
-                            posX.get(multi.get(j).getSHA1()) + (j * 30),
-                            47);
-
-                        dateLine.getChildren().addAll(day, month, line);
-
-                        prevDate = currDate;
-                    }else
-                        //month = null;
                     if(currDate.getDate() > prevDate.getDate())
-                    {
-                        day = new Text(Integer.toString(currDate.getDate()));
-                        day.setX(posX.get(multi.get(j).getSHA1()) + (j * 30));
-                        day.setY(40); 
-
-                        Line line = new Line(posX.get(multi.get(j).getSHA1()) + (j * 30), 
-                            45,
-                            posX.get(multi.get(j).getSHA1()) + (j * 30),
-                            47);
-
-                        dateLine.getChildren().addAll(day, line);
-
-                        prevDate = currDate;
-                    }else
-                        //day = null;                
+                        dateLine.getChildren().add(drawDate(currDate, multi.get(j), false, false, true, true, j));
 
                     prevDate = currDate;
                 }
                 
                 i = multiSize;
             }                    
-        } 
-        
+        }         
         return dateLine;
+    }
+    
+    private Group drawDate(Date currDate, NGCommit ng, boolean y, boolean m, boolean d, boolean multi, int j)
+    {
+        Group grp = new Group();
+        ArrayList<String> months = new ArrayList<>();
+        months.addAll(Arrays.asList("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"));
+        
+        if(y)
+        {
+            Text year = new Text(Integer.toString(currDate.getYear() + 1900));
+            year.setX(posX.get(ng.getSHA1()) + (multi ? (j * 30) : 0));
+            year.setY(10);  
+            grp.getChildren().add(year);
+        }
+                
+        if(m)
+        {
+            Text month = new Text(months.get(currDate.getMonth()));
+            month.setX(posX.get(ng.getSHA1()) + (multi ? (j * 30) : 0));
+            month.setY(25);
+            
+            grp.getChildren().add(month);
+        }
+        
+        if(d)
+        {
+            Text day = new Text(Integer.toString(currDate.getDate()));
+            day.setX(posX.get(ng.getSHA1()) + (multi ? (j * 30) : 0));
+            day.setY(40);  
+            
+            grp.getChildren().add(day);
+        }
+        
+        if(y || m || d)
+        {
+            Line line = new Line(posX.get(ng.getSHA1()) + (multi ? (j * 30) : 0), 
+                45,
+                posX.get(ng.getSHA1()) + (multi ? (j * 30) : 0),
+                47);
+            grp.getChildren().add(line);
+        }
+        
+        return grp;
     }
 }
