@@ -36,6 +36,7 @@ import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.shape.Shape;
+import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
 import org.kohsuke.github.GHCommit;
@@ -90,6 +91,7 @@ public class NetworkGraph {
     }
     
     private void processCommits(List<GHCommit> commits, List<GHRepository> forks){
+        System.out.println("Processing commits and forks");
         HashMap<String, NGCommit> hm = new HashMap();
         
         //processing order for space processing
@@ -150,6 +152,7 @@ public class NetworkGraph {
     
     private void processExpandedSpaces(List<NGCommit> commits, List<String> procOrder)
     {
+        System.out.println("Process Expanded Spaces");
         //put all commits with new format in hashmap
         for(NGCommit com : commits)
             hs.put(com.getSHA1(), com);
@@ -158,6 +161,7 @@ public class NetworkGraph {
         int maxSpace = 0;
         int tempMaxSpace = 0;
         int cnt = 0;
+        int cnt2 = 0;
         
         //init maxSpacing, all false besides 1st
         for(int i = 0; i < numSpaces; i++)
@@ -165,6 +169,7 @@ public class NetworkGraph {
         
         for(String owner : procOrder)
         {
+            System.out.println("Owner No.: " + cnt2);
             //init spacing, first commit in current branch set to "0"
             for(int i = 0; i < ngcommits.size(); i++)
             {
@@ -255,6 +260,8 @@ public class NetworkGraph {
                 }
             }
             labelOrderSpacing.add(maxSpace);
+            
+            cnt2++;
         }
         
         processCompactSpaces(ngcommits, procOrder);
@@ -268,6 +275,7 @@ public class NetworkGraph {
     
     private void processCompactSpaces(List<NGCommit> commits, List<String> order)
     {
+        System.out.println("Process Compact Spaces");
         //space map
         List<Integer> spacing = new ArrayList();
         
@@ -277,11 +285,13 @@ public class NetworkGraph {
         int currMin = -1;
         int currLast = -1;
         int currFirst = -1;
+        int cnt = 0;
         
         Iterator<String> it = order.iterator();
         
         if(it.hasNext())
         {
+            System.out.println("Owner No.: " + cnt);
             owner = it.next();
                         
             //master init
@@ -343,6 +353,7 @@ public class NetworkGraph {
                     spacing.add(i, currMax - diff);                                        
                 }                
             }
+            cnt++;
         } 
     }
     
@@ -385,7 +396,7 @@ public class NetworkGraph {
     
     public void drawGraph() throws IOException
     {       
-        double stepSize = 30;
+        double stepSize = 20;
         double yOffset =  30;
         double xOffset = 30; //compact ? 50 : 150;
                         
@@ -408,7 +419,7 @@ public class NetworkGraph {
                 else
                     nodes.add(createMultiNode(nodes.size(),i ,multiSize, xOffset, yOffset * (ngcommits.get(i).getCompactSpace() + 1) * 0.75, stepSize));
                 i = multiSize;
-                xOffset += 30;
+                xOffset += 20;
             }                    
         }
         
@@ -751,7 +762,7 @@ public class NetworkGraph {
         
         Rectangle rec = new Rectangle(pos * stepSize + xOffset - 5,
                     yOffset - 5,
-                    40,10);
+                    30,10);
         rec.setArcHeight(10);
         rec.setArcWidth(10);
         
@@ -785,8 +796,8 @@ public class NetworkGraph {
         cnt.setWrappingWidth(40);
         cnt.setTextAlignment(TextAlignment.CENTER);
         //cnt.setFill(Color.WHITE);
-        cnt.setStroke((getColor(ngcommits.get(start)) == Color.BLACK) ? Color.WHITE : Color.GRAY);
-        cnt.setX(rec.getX());
+        cnt.setStroke((getColor(ngcommits.get(start)) == Color.BLACK) ? Color.WHITE : Color.WHITE);
+        cnt.setX(rec.getX() - 5);
         cnt.setY(rec.getY() + 9);
         
         cnt.setOnMouseClicked(e -> {
@@ -832,18 +843,27 @@ public class NetworkGraph {
     }
         
     private void setColors(){
-        colors.add(Color.web("8DD3C7"));
-        colors.add(Color.web("FFFFB3"));
-        colors.add(Color.web("BEBADA"));     
-        colors.add(Color.web("FB8072"));
-        colors.add(Color.web("80B1D3"));
-        colors.add(Color.web("FDB462"));  
-        colors.add(Color.web("B3DE69"));
-        colors.add(Color.web("FCCDE5"));
-        colors.add(Color.web("D9D9D9"));  
-        colors.add(Color.web("BC80BD"));
-        colors.add(Color.web("CCEBC5"));
-        colors.add(Color.web("FFED6F"));  
+        
+        colors.add(Color.BLACK);
+        colors.add(Color.CORNFLOWERBLUE);
+        colors.add(Color.ORANGE);
+        colors.add(Color.LIGHTSEAGREEN);       
+        colors.add(Color.MEDIUMORCHID);
+        colors.add(Color.PLUM);
+        colors.add(Color.SALMON);
+//        colors.add(Color.SLATEBLUE);
+//        colors.add(Color.web("8DD3C7"));
+//        colors.add(Color.web("FFFFB3"));
+//        colors.add(Color.web("BEBADA"));     
+//        colors.add(Color.web("FB8072"));
+//        colors.add(Color.web("80B1D3"));
+//        colors.add(Color.web("FDB462"));  
+//        colors.add(Color.web("B3DE69"));
+//        colors.add(Color.web("FCCDE5"));
+//        colors.add(Color.web("D9D9D9"));  
+//        colors.add(Color.web("BC80BD"));
+//        colors.add(Color.web("CCEBC5"));
+//        colors.add(Color.web("FFED6F"));  
     }
     
     private Color getColor(NGCommit ng)
@@ -853,14 +873,14 @@ public class NetworkGraph {
             if(ng.getCompactSpace() == 0)
                 return Color.BLACK;
             else
-                return colors.get(ng.getCompactSpace() % 12);
+                return colors.get(ng.getCompactSpace() % colors.size());
         }
         else
         {
             if(ng.getExpandedSpace() == 0)
                 return Color.BLACK;
             else
-                return colors.get(ng.getExpandedSpace() % 12);
+                return colors.get(ng.getExpandedSpace() % colors.size());
         }
     }
            
@@ -940,6 +960,13 @@ public class NetworkGraph {
                     if(line3 != null)
                         line3.setStroke(getColor(hs.get(commit.getParentSHA1s().get(j))));
                 }
+                
+                line1.setStrokeWidth(3.0);
+                if(line2 != null)
+                    line2.setStrokeWidth(3.0);
+                
+                if(line3 != null)
+                    line3.setStrokeWidth(3.0);
                 
                 lines.add(line1);
                 if(line2 != null)
@@ -1143,7 +1170,7 @@ public class NetworkGraph {
         if(y)
         {
             Text year = new Text(Integer.toString(currDate.getYear() + 1900));
-            year.setX(posX.get(ng.getSHA1()) + (multi ? (j * 30) : 0));
+            year.setX(posX.get(ng.getSHA1()) + (multi ? (j * 20) : 0));
             year.setY(10);  
             grp.getChildren().add(year);
         }
@@ -1151,8 +1178,9 @@ public class NetworkGraph {
         if(m)
         {
             Text month = new Text(months.get(currDate.getMonth()));
-            month.setX(posX.get(ng.getSHA1()) + (multi ? (j * 30) : 0));
+            month.setX(posX.get(ng.getSHA1()) + (multi ? (j * 20) : 0));
             month.setY(25);
+            month.setFont(Font.font ("Verdana", 9));
             
             grp.getChildren().add(month);
         }
@@ -1160,7 +1188,7 @@ public class NetworkGraph {
         if(d)
         {
             Text day = new Text(Integer.toString(currDate.getDate()));
-            day.setX(posX.get(ng.getSHA1()) + (multi ? (j * 30) : 0));
+            day.setX(posX.get(ng.getSHA1()) + (multi ? (j * 20) : 0));
             day.setY(40);  
             
             grp.getChildren().add(day);
@@ -1168,9 +1196,9 @@ public class NetworkGraph {
         
         if(y || m || d)
         {
-            Line line = new Line(posX.get(ng.getSHA1()) + (multi ? (j * 30) : 0), 
+            Line line = new Line(posX.get(ng.getSHA1()) + (multi ? (j * 20) : 0), 
                 45,
-                posX.get(ng.getSHA1()) + (multi ? (j * 30) : 0),
+                posX.get(ng.getSHA1()) + (multi ? (j * 20) : 0),
                 47);
             grp.getChildren().add(line);
         }
