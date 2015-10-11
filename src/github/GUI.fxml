@@ -18,24 +18,15 @@
         <Text layoutY="99.0" strokeType="OUTSIDE" strokeWidth="0.0" text="repository information" AnchorPane.leftAnchor="10.0" />
         <Text layoutY="124.0" strokeType="OUTSIDE" strokeWidth="0.0" text="name:" AnchorPane.leftAnchor="10.0" />
         <Text layoutY="146.0" strokeType="OUTSIDE" strokeWidth="0.0" text="forks:" AnchorPane.leftAnchor="10.0" />
-        <Text layoutY="168.0" strokeType="OUTSIDE" strokeWidth="0.0" text="branches:" AnchorPane.leftAnchor="10.0" />
-        <Text layoutY="191.0" strokeType="OUTSIDE" strokeWidth="0.0" text="releases:" AnchorPane.leftAnchor="10.0" />
-        <Text layoutY="214.0" strokeType="OUTSIDE" strokeWidth="0.0" text="contributors:" AnchorPane.leftAnchor="10.0" />
         <Label fx:id="infoName" layoutY="111.0" prefHeight="16.0" prefWidth="90.0" textAlignment="RIGHT" AnchorPane.rightAnchor="10.0" />
         <Label fx:id="infoForks" layoutY="133.0" prefHeight="16.0" prefWidth="90.0" textAlignment="RIGHT" AnchorPane.rightAnchor="10.0" />
-        <Label fx:id="infoBranches" layoutY="155.0" prefHeight="16.0" prefWidth="90.0" textAlignment="RIGHT" AnchorPane.rightAnchor="10.0" />
-        <Label fx:id="infoReleases" layoutY="178.0" prefHeight="16.0" prefWidth="90.0" textAlignment="RIGHT" AnchorPane.rightAnchor="10.0" />
-        <Label fx:id="infoContributors" layoutY="201.0" prefHeight="16.0" prefWidth="90.0" textAlignment="RIGHT" AnchorPane.rightAnchor="10.0" />
-        <Text layoutY="244.0" strokeType="OUTSIDE" strokeWidth="0.0" text="description" AnchorPane.leftAnchor="10.0" />
-        <Label fx:id="infoDescription" layoutX="5.0" layoutY="258.0" prefHeight="216.0" prefWidth="177.0" />
-        <Button id="loadButton" fx:id="openFileButton" layoutX="12.0" layoutY="262.0" mnemonicParsing="false" onAction="#openFileButtonAction" prefHeight="26.0" prefWidth="163.0" text="open file" />
-        <Button id="loadButton" fx:id="loadFileButton" layoutX="12.0" layoutY="297.0" mnemonicParsing="false" onAction="#loadFileButtonAction" prefHeight="26.0" prefWidth="163.0" text="load file" />
-        <Button id="loadButton" fx:id="saveFileButton" layoutX="12.0" layoutY="333.0" mnemonicParsing="false" onAction="#saveFileButtonAction" prefHeight="26.0" prefWidth="163.0" text="save file" />
+        <Text layoutY="166.0" strokeType="OUTSIDE" strokeWidth="0.0" text="description:" AnchorPane.leftAnchor="10.0" />
+        <Label fx:id="infoDescription" alignment="TOP_LEFT" layoutX="10.0" layoutY="180.0" prefHeight="216.0" prefWidth="166.0" />
         <Button id="loadButton" fx:id="toggleMultiButton" layoutX="12.0" layoutY="402.0" mnemonicParsing="false" onAction="#toggleMultiButtonAction" prefHeight="26.0" prefWidth="163.0" text="toggle multicommits" />
         <Button id="loadButton" fx:id="toggleExpandButton" layoutX="12.0" layoutY="438.0" mnemonicParsing="false" onAction="#toggleExpandButtonAction" prefHeight="26.0" prefWidth="163.0" text="expand/compress" />
       </children>
     </AnchorPane>
-    <BorderPane prefHeight="480.0" prefWidth="454.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="185.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+    <BorderPane fx:id="borderPane" prefHeight="480.0" prefWidth="454.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="185.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
       <center>
         <ScrollPane id="contentPane" fx:id="contentScrollPane" prefHeight="-1.0" prefWidth="-1.0">
           <content>

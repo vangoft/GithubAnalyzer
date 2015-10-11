@@ -74,20 +74,29 @@ public class NetworkGraph {
     private final HashMap<String, String> txtLabels = new HashMap<>();
     private final ArrayList<Integer> labelOrderSpacing = new ArrayList();
     
-    private boolean compact = false;
-    
+    private boolean compact = false;    
     private double zoomFactor = 1.00;
     
-    public NetworkGraph(List<GHCommit> commits, List<GHRepository> forks, Pane cp, Pane lp, Pane dp, ScrollPane csp, ScrollPane lsp, ScrollPane dsp)
-    {
-        processCommits(commits, forks);
-        setColors();
+    private final String name;
+    private final int forks;
+    private final String desc;
+    
+    public NetworkGraph(List<GHCommit> commits, List<GHRepository> forks,
+            Pane cp, Pane lp, Pane dp, ScrollPane csp, ScrollPane lsp,
+            ScrollPane dsp, String name, String desc)
+    {        
         contentPane = cp;
         labelPane = lp;
         datePane = dp;
         contentScrollPane = csp;
         labelScrollPane = lsp;
         dateScrollPane = dsp;
+        this.name = name; 
+        this.forks = forks.size();
+        this.desc = desc;
+        setColors();
+        processCommits(commits, forks);
+
     }
     
     private void processCommits(List<GHCommit> commits, List<GHRepository> forks){
@@ -430,6 +439,9 @@ public class NetworkGraph {
         //create outlines for multicommits
         createAllOutlines();
         
+        //save scrollbar position
+        double chbar = contentScrollPane.getHvalue();
+       
         //erase contentPane content
         contentPane.getChildren().clear();
         contentPane.resize(0, 0);
@@ -439,6 +451,7 @@ public class NetworkGraph {
          
         //erase date content
         datePane.getChildren().clear();
+        datePane.resize(0, 0);
 
         //group elements for contentpane
         Group content = new Group();
@@ -451,7 +464,7 @@ public class NetworkGraph {
         //regroup for background width
         Group bg = new Group();
         
-        if(!compact)
+        //if(!compact)
             bg.getChildren().add(createForkBackground(contentPane));
         bg.getChildren().addAll(content.getChildren());
         
@@ -465,8 +478,13 @@ public class NetworkGraph {
         //add content to panes
         contentPane.getChildren().add(bg);
         datePane.getChildren().add(createDateLine(contentPane));        
-        if(!compact)
+       // if(!compact)
             labelPane.getChildren().add(createSideLabels(labelPane));
+        
+        //set scrollbar position
+        contentScrollPane.setHvalue(chbar);        
+        dateScrollPane.setHvalue(chbar);
+
         
         //bind label pane v scroll pos to content pane v scroll pos
         DoubleProperty vPosition = new SimpleDoubleProperty();
@@ -716,17 +734,17 @@ public class NetworkGraph {
         return group;
     }
     
-    private Rectangle createOutline(double x1, double x2, int space){
+    private Rectangle createOutline(double x1, double x2, NGCommit commit){
         int yOffset = 30;
                 
         Rectangle rec = new Rectangle();
         rec.setX(x1 - 6);
-        rec.setY((yOffset * (space + 1) * 0.75) - 6);
+        rec.setY((yOffset * (compact ? commit.getCompactSpace() + 1: commit.getExpandedSpace() + 1) * 0.75) - 6);
         rec.setHeight(12);
         rec.setWidth(x2 - x1 + 12);
         rec.setArcHeight(10);
         rec.setArcWidth(10);
-        rec.setStroke(colors.get(space % 8));
+        rec.setStroke(getColor(commit));
         rec.getStrokeDashArray().addAll(2d, 5d);
         rec.setFill(null);
         return rec;
@@ -749,7 +767,7 @@ public class NetworkGraph {
             outlines.add(createOutline(
                     posX.get(multi.get(0).getSHA1()),
                     posX.get(multi.get(multi.size() - 1).getSHA1()),
-                    compact ? multi.get(0).getCompactSpace() : multi.get(0).getExpandedSpace())); 
+                    multi.get(0))); 
             
             for(NGCommit ng : multi)
                sha1.add(ng.getSHA1());
@@ -796,7 +814,7 @@ public class NetworkGraph {
         cnt.setWrappingWidth(40);
         cnt.setTextAlignment(TextAlignment.CENTER);
         //cnt.setFill(Color.WHITE);
-        cnt.setStroke((getColor(ngcommits.get(start)) == Color.BLACK) ? Color.WHITE : Color.WHITE);
+        cnt.setStroke(Color.WHITE);
         cnt.setX(rec.getX() - 5);
         cnt.setY(rec.getY() + 9);
         
@@ -804,6 +822,8 @@ public class NetworkGraph {
             toggleSingleMulti(rec.getId());
             e.consume();
         });
+        
+        Tooltip.install(cnt, tt);
         
         multi.getChildren().addAll(rec, cnt);
         
@@ -844,26 +864,25 @@ public class NetworkGraph {
         
     private void setColors(){
         
-        colors.add(Color.BLACK);
-        colors.add(Color.CORNFLOWERBLUE);
-        colors.add(Color.ORANGE);
-        colors.add(Color.LIGHTSEAGREEN);       
-        colors.add(Color.MEDIUMORCHID);
-        colors.add(Color.PLUM);
-        colors.add(Color.SALMON);
+//        colors.add(Color.BLACK);
+//        colors.add(Color.CORNFLOWERBLUE);
+//        colors.add(Color.ORANGE);
+//        colors.add(Color.LIGHTSEAGREEN);       
+//        colors.add(Color.MEDIUMORCHID);
+//        colors.add(Color.PLUM);
+//        colors.add(Color.SALMON);
 //        colors.add(Color.SLATEBLUE);
-//        colors.add(Color.web("8DD3C7"));
-//        colors.add(Color.web("FFFFB3"));
-//        colors.add(Color.web("BEBADA"));     
-//        colors.add(Color.web("FB8072"));
-//        colors.add(Color.web("80B1D3"));
-//        colors.add(Color.web("FDB462"));  
-//        colors.add(Color.web("B3DE69"));
-//        colors.add(Color.web("FCCDE5"));
-//        colors.add(Color.web("D9D9D9"));  
-//        colors.add(Color.web("BC80BD"));
-//        colors.add(Color.web("CCEBC5"));
-//        colors.add(Color.web("FFED6F"));  
+        colors.add(Color.web("F07EA4"));
+        colors.add(Color.web("F08562"));
+        colors.add(Color.web("99B448"));     
+        colors.add(Color.web("4BC280"));
+        colors.add(Color.web("00C2BC"));
+        colors.add(Color.web("74AFF4"));  
+        colors.add(Color.web("BD94F5"));
+        colors.add(Color.web("A2B143"));
+        colors.add(Color.web("25BED3"));  
+        colors.add(Color.web("BC80BD"));
+        colors.add(Color.web("B099F9"));
     }
     
     private Color getColor(NGCommit ng)
@@ -961,12 +980,12 @@ public class NetworkGraph {
                         line3.setStroke(getColor(hs.get(commit.getParentSHA1s().get(j))));
                 }
                 
-                line1.setStrokeWidth(3.0);
+                line1.setStrokeWidth(2.5);
                 if(line2 != null)
-                    line2.setStrokeWidth(3.0);
+                    line2.setStrokeWidth(2.5);
                 
                 if(line3 != null)
-                    line3.setStrokeWidth(3.0);
+                    line3.setStrokeWidth(2.5);
                 
                 lines.add(line1);
                 if(line2 != null)
@@ -1013,6 +1032,7 @@ public class NetworkGraph {
         Group recs = new Group();
         String owner = "";   
         String sha1 = "";
+        boolean cancel = false;
         
         Iterator it = txtLabels.entrySet().iterator();        
         while (it.hasNext()) 
@@ -1021,7 +1041,14 @@ public class NetworkGraph {
             owner = (String) pair.getKey();
             sha1 = (String) pair.getValue();
             
-            double x  = posX.get(sha1);
+            if(compact)
+            {
+                if(this.name.contains(owner))
+                    cancel = true;
+                else
+                    continue;
+            }
+
             double y = posY.get(sha1);
             
             //text label
@@ -1032,6 +1059,9 @@ public class NetworkGraph {
             txt.setY(y + 3);
             
             grpTxt.getChildren().add(txt);
+            if(cancel)
+                break;
+
         }
         
         int yOffset = 30;
@@ -1053,6 +1083,8 @@ public class NetworkGraph {
             startY = (yOffset * (labelOrderSpacing.get(i) + 1) * 0.75) - 12;
 
             recs.getChildren().add(rec);
+            if(compact)
+                break;
         }
         recs.getChildren().addAll(grpTxt.getChildren());
         return recs;
@@ -1080,6 +1112,8 @@ public class NetworkGraph {
             startY = (yOffset * (labelOrderSpacing.get(i) + 1) * 0.75) - 12;
 
             recs.getChildren().add(rec);
+            if(compact)
+                break;
         }
         
         return recs;
@@ -1204,5 +1238,18 @@ public class NetworkGraph {
         }
         
         return grp;
+    }
+    
+    public String getName()
+    {
+        return name;
+    }    
+    public String getForks()
+    {
+        return Integer.toString(forks);
+    }
+    public String getDesc()
+    {
+        return desc;
     }
 }
