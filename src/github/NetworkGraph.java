@@ -35,7 +35,6 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
-import javafx.scene.shape.Shape;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.scene.text.TextAlignment;
@@ -80,6 +79,9 @@ public class NetworkGraph {
     private final String name;
     private final int forks;
     private final String desc;
+    
+    DoubleProperty vPosition;
+    DoubleProperty hPosition;    
     
     public NetworkGraph(List<GHCommit> commits, List<GHRepository> forks,
             Pane cp, Pane lp, Pane dp, ScrollPane csp, ScrollPane lsp,
@@ -487,7 +489,7 @@ public class NetworkGraph {
 
         
         //bind label pane v scroll pos to content pane v scroll pos
-        DoubleProperty vPosition = new SimpleDoubleProperty();
+        vPosition = new SimpleDoubleProperty();
             vPosition.bind(contentScrollPane.vvalueProperty());
             vPosition.addListener(new ChangeListener() {
                 @Override
@@ -497,7 +499,7 @@ public class NetworkGraph {
          }); 
 
         //bind date pane h scroll pos to content pane h scroll pos               
-        DoubleProperty hPosition = new SimpleDoubleProperty();
+        hPosition = new SimpleDoubleProperty();
             hPosition.bind(contentScrollPane.hvalueProperty());
             hPosition.addListener(new ChangeListener() {
                 @Override
@@ -813,7 +815,7 @@ public class NetworkGraph {
         Text cnt = new Text(Integer.toString(start - end + 1));
         cnt.setWrappingWidth(40);
         cnt.setTextAlignment(TextAlignment.CENTER);
-        //cnt.setFill(Color.WHITE);
+        cnt.setFill(Color.WHITE);
         cnt.setStroke(Color.WHITE);
         cnt.setX(rec.getX() - 5);
         cnt.setY(rec.getY() + 9);
